@@ -88,6 +88,7 @@ LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
 std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
     const common::Time time, const transform::Rigid2d& pose_prediction,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud) {
+  // 检验submaps是否为空
   if (active_submaps_.submaps().empty()) {
     return absl::make_unique<transform::Rigid2d>(pose_prediction);
   }
@@ -98,7 +99,7 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   // the Ceres scan matcher.
   transform::Rigid2d initial_ceres_pose = pose_prediction;
 
-  // 根据参数决定是否 使用correlative_scan_matching对先验位姿进行校准
+  // 根据参数决定是否使用correlative_scan_matching对先验位姿进行校准
   if (options_.use_online_correlative_scan_matching()) {
     const double score = real_time_correlative_scan_matcher_.Match(
         pose_prediction, filtered_gravity_aligned_point_cloud,

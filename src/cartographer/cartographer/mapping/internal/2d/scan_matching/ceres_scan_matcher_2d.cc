@@ -81,7 +81,7 @@ void CeresScanMatcher2D::Match(const Eigen::Vector2d& target_translation,
                                    initial_pose_estimate.rotation().angle()};
   ceres::Problem problem;
 
-  // 地图部分的残差
+  // 地图部分的残差,首先check权重是否大于0
   CHECK_GT(options_.occupied_space_weight(), 0.);
   switch (grid.GetGridType()) {
     case GridType::PROBABILITY_GRID:
@@ -118,7 +118,8 @@ void CeresScanMatcher2D::Match(const Eigen::Vector2d& target_translation,
 
   // 根据配置进行求解
   ceres::Solve(ceres_solver_options_, &problem, summary);
-
+  
+  // 返回估计得到的位姿
   *pose_estimate = transform::Rigid2d(
       {ceres_pose_estimate[0], ceres_pose_estimate[1]}, ceres_pose_estimate[2]);
 }

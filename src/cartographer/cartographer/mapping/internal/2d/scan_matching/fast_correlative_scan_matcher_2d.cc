@@ -243,9 +243,10 @@ uint8 PrecomputationGrid2D::ComputeCellValue(const float probability) const {
 PrecomputationGridStack2D::PrecomputationGridStack2D(
     const Grid2D& grid,
     const proto::FastCorrelativeScanMatcherOptions2D& options) {
+  // 深度至少为1
   CHECK_GE(options.branch_and_bound_depth(), 1);
 
-  // param: branch_and_bound_depth 默认为7, 确定 最大的分辨率, 也就是64个栅格合成一个格子
+  // 深度默认为7,也就是64个栅格合成一个格子
   const int max_width = 1 << (options.branch_and_bound_depth() - 1); // 64
   precomputation_grids_.reserve(options.branch_and_bound_depth());
   
@@ -253,11 +254,11 @@ PrecomputationGridStack2D::PrecomputationGridStack2D(
   std::vector<float> reusable_intermediate_grid;
   const CellLimits limits = grid.limits().cell_limits();
 
-  // 经过滑窗后产生的栅格地图会变宽, x方向最多会比原地图多max_width-1个格子
+  // 经过滑窗后产生的栅格地图会变宽,x方向最多会比原地图多max_width-1个格子
   reusable_intermediate_grid.reserve((limits.num_x_cells + max_width - 1) *
                                      limits.num_y_cells);
 
-  // 分辨率逐渐变大, i=0时就是默认分辨率0.05, i=6时, width=64,也就是64个格子合成一个值
+  // 分辨率逐渐变大,i=0时就是默认分辨率0.05;i=6时,width=64,也就是64个格子合成一个值
   for (int i = 0; i != options.branch_and_bound_depth(); ++i) {
     const int width = 1 << i;
     // 构造不同分辨率的地图 PrecomputationGrid2D
@@ -340,42 +341,42 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   CHECK(score != nullptr);
   CHECK(pose_estimate != nullptr);
 
-  // Step: 将原点处的点云先旋转到预测的方向上
+  // 将原点处的点云先旋转到预测的方向上
   const Eigen::Rotation2Dd initial_rotation = initial_pose_estimate.rotation();
   const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud(
       point_cloud,
       transform::Rigid3f::Rotation(Eigen::AngleAxisf(
           initial_rotation.cast<float>().angle(), Eigen::Vector3f::UnitZ())));
 
-  // Step: 生成按照不同角度旋转后的点云集合
+  // 生成按照不同角度旋转后的点云集合
   const std::vector<sensor::PointCloud> rotated_scans =
       GenerateRotatedScans(rotated_point_cloud, search_parameters);
 
-  // Step: 将旋转后的点云集合按照预测出的平移量进行平移, 获取平移后的点在地图中的索引
+  // 将旋转后的点云集合按照预测出的平移量进行平移,获取平移后的点在地图中的索引
   // 这里的离散激光点是在最细的分辨率的地图上面
   const std::vector<DiscreteScan2D> discrete_scans = DiscretizeScans(
       limits_, rotated_scans,
       Eigen::Translation2f(initial_pose_estimate.translation().x(),
                            initial_pose_estimate.translation().y()));
   
-  // 缩小搜索窗口的大小, 计算每一帧点云在保证最后一个点能在地图范围内时的最大移动范围
+  // 缩小搜索窗口的大小,计算每一帧点云在保证最后一个点能在地图范围内时的最大移动范围
   search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits());
 
-  // 计算最低分辨率中的所有的候选解 最低分辨率是通过搜索树的层数、地图的分辨率计算出来的.
-  // 对于地图坐标系来说 最低分辨率=1<<h, h表示搜索树的总的层数
-  // 这里不但对最低分辨率的所有候选解的得分进行了计算, 同时还按照从大到小排列
+  // 计算最低分辨率中的所有的候选解,最低分辨率是通过搜索树的层数、地图的分辨率计算出来的
+  // 对于地图坐标系来说,最低分辨率=1<<h,h表示搜索树的总的层数
+  // 这里不但对最低分辨率的所有候选解的得分进行了计算,同时还按照从大到小排列
   const std::vector<Candidate2D> lowest_resolution_candidates =
       ComputeLowestResolutionCandidates(discrete_scans, search_parameters);
   
-  // Step: 进行基于分支定界算法的搜索, 获取最优解
+  // 进行基于分支定界算法的搜索,获取最优解
   const Candidate2D best_candidate = BranchAndBound(
       discrete_scans, search_parameters, lowest_resolution_candidates,
       precomputation_grid_stack_->max_depth(), min_score); // param: max_depth
   
-  // 检查最优解的值, 如果大于指定阈值min_score就认为匹配成功,否则认为不匹配返回失败
+  // 检查最优解的值,如果大于指定阈值min_score就认为匹配成功,否则认为不匹配返回失败
   if (best_candidate.score > min_score) {
     *score = best_candidate.score;
-    // Step: 根据计算出的偏移量对位姿进行校准
+    // 根据计算出的偏移量对位姿进行校准
     *pose_estimate = transform::Rigid2d(
         {initial_pose_estimate.translation().x() + best_candidate.x,
          initial_pose_estimate.translation().y() + best_candidate.y},
@@ -458,27 +459,27 @@ void FastCorrelativeScanMatcher2D::ScoreCandidates(
     const std::vector<DiscreteScan2D>& discrete_scans,
     const SearchParameters& search_parameters,
     std::vector<Candidate2D>* const candidates) const {
-  // 遍历所有的候选解, 对每个候选解进行打分
+  // 遍历所有的候选解,对每个候选解进行打分
   for (Candidate2D& candidate : *candidates) {
     int sum = 0;
-    // xy_index 为这帧旋转后的点云上的每个点对应在地图上的栅格坐标
+    // xy_index为这帧旋转后的点云上的每个点对应在地图上的栅格坐标
     for (const Eigen::Array2i& xy_index :
          discrete_scans[candidate.scan_index]) {
-      // 旋转后的点云的每个点的坐标加上这个可行解的X与Y的偏置, 即将点云进行平移
+      // 旋转后的点云的每个点的坐标加上这个可行解的X与Y的偏置,即将点云进行平移
       const Eigen::Array2i proposed_xy_index(
           xy_index.x() + candidate.x_index_offset,
           xy_index.y() + candidate.y_index_offset);
 
-      // 对平移后的点云的每个点 获取在precomputation_grid上对应的栅格值
+      // 对平移后的点云的每个点,获取在precomputation_grid上对应的栅格值
       sum += precomputation_grid.GetValue(proposed_xy_index);
     }
 
-    // 栅格值的和除以这个点云中点的个数, 作为这个候选解在这个 precomputation_grid 上的得分
+    // 栅格值的和除以这个点云中点的个数,作为这个候选解在这个precomputation_grid上的得分
     candidate.score = precomputation_grid.ToScore(
         sum / static_cast<float>(discrete_scans[candidate.scan_index].size()));
   }
 
-  // 根据候选解的score, 对所有候选解进行降序排列
+  // 根据候选解的score,对所有候选解进行降序排列
   std::sort(candidates->begin(), candidates->end(),
             std::greater<Candidate2D>());
 }
@@ -498,7 +499,6 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
     const SearchParameters& search_parameters,
     const std::vector<Candidate2D>& candidates, const int candidate_depth,
     float min_score) const {
-
   // 这个函数是以递归调用的方式求解的
   // 首先给出了递归终止的条件, 就是如果到了第0层(到底了), 意味着我们搜索到了一个叶子节点.
   // 同时由于每次迭代过程我们都是对新扩展的候选点进行降序排列
@@ -508,55 +508,56 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
     return *candidates.begin();
   }
 
-  // 然后创建一个临时的候选解, 并将得分设置为min_score
+  // 然后创建一个临时的候选解,用来存储最高得分,并预先将得分设置为min_score
   Candidate2D best_high_resolution_candidate(0, 0, 0, search_parameters);
   best_high_resolution_candidate.score = min_score;
 
   // 遍历所有的候选点
   for (const Candidate2D& candidate : candidates) {
-    //  Step: 剪枝 低于设置的阈值 或者 低于上一层的可行解的最高分 的可行解不进行继续分枝
-    // 如果遇到一个候选点的分低于阈值, 那么后边的候选解的得分也会低于阈值,就可以直接跳出循环了
+    //  Step1:剪枝,低于设置的阈值 或者 低于上一层的可行解的最高分 的可行解不进行继续分枝
+    // 如果遇到一个候选点的分低于阈值,那么后边的候选解的得分也会低于阈值,就可以直接跳出循环了
     if (candidate.score <= min_score) {
       break;
     }
 
-    // 如果for循环能够继续运行, 说明当前候选点是一个更优的选择, 需要对其进行分枝
+    // 如果for循环能够继续运行,说明当前候选点是一个更优的选择,需要对其进行分枝
     std::vector<Candidate2D> higher_resolution_candidates;
     // 搜索步长减为上层的一半
     const int half_width = 1 << (candidate_depth - 1);
 
-    // Step: 分枝 对x、y偏移进行遍历, 求出candidate的四个子节点候选解
+    // Step2:分枝,对x、y偏移进行遍历,求出candidate的四个子节点候选解
     for (int x_offset : {0, half_width}) { // 只能取0和half_width
-      // 如果超过了界限, 就跳过
+      // 如果x超过了界限,就跳过
       if (candidate.x_index_offset + x_offset >
           search_parameters.linear_bounds[candidate.scan_index].max_x) {
         break;
       }
       for (int y_offset : {0, half_width}) {
+        // 如果y超过了界限,就跳过
         if (candidate.y_index_offset + y_offset >
             search_parameters.linear_bounds[candidate.scan_index].max_y) {
           break;
         }
 
-        // 候选者依次推进来, 一共4个,可以看出, 分枝定界方法的分枝是向右下角的四个子节点进行分枝
+        // 4个候选者依次推进来,可以看出,分枝定界方法的分枝是向右下角的四个子节点进行分枝
         higher_resolution_candidates.emplace_back(
             candidate.scan_index, candidate.x_index_offset + x_offset,
             candidate.y_index_offset + y_offset, search_parameters);
       }
     }
 
-    // 对新生成的4个候选解进行打分与排序, 同一个点云, 不同地图
+    // 对新生成的4个候选解进行打分与排序,同一个点云,不同地图
     ScoreCandidates(precomputation_grid_stack_->Get(candidate_depth - 1),
                     discrete_scans, search_parameters,
                     &higher_resolution_candidates);
 
     // 递归调用BranchAndBound对新生成的higher_resolution_candidates进行搜索 
-    // 先对其分数最高的节点继续进行分支, 直到最底层, 然后再返回倒数第二层再进行迭代
-    // 如果倒数第二层的最高分没有上一个的最底层（叶子层）的分数高, 则跳过, 
+    // 先对其分数最高的节点继续进行分支,直到最底层,然后再返回倒数第二层再进行迭代
+    // 如果倒数第二层的最高分没有上一个的最底层(叶子层)的分数高,则跳过, 
     // 否则继续向下进行分支与评分
  
-    // Step: 定界 best_high_resolution_candidate.score
-    // 以后通过递归调用发现了更优的解都将通过std::max函数来更新已知的最优解.
+    // Step3:定界,best_high_resolution_candidate.score
+    // 以后通过递归调用发现了更优的解都将通过std::max函数来更新已知的最优解
     best_high_resolution_candidate = std::max(
         best_high_resolution_candidate,
         BranchAndBound(discrete_scans, search_parameters,

@@ -81,20 +81,21 @@ void Run() {
   // 这样能够减少不必要的临时对象的创建、拷贝以及销毁, 能够大幅度提高 C++ 应用程序的性能.
   // 临时对象的维护 ( 创建和销毁 ) 对性能有严重影响.
 
-  // Node类的初始化, 将ROS的topic传入SLAM, 也就是MapBuilder
+  // Node类的初始化,将ROS的topic传入SLAM,也就是MapBuilder
   Node node(node_options, std::move(map_builder), &tf_buffer,
             FLAGS_collect_metrics);
 
-  // 如果加载了pbstream文件, 就执行这个函数
+  // 如果加载了pbstream文件,则LoadState
   if (!FLAGS_load_state_filename.empty()) {
     node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
   }
 
-  // 使用默认topic 开始轨迹
+  // 使用默认topic开始轨迹
   if (FLAGS_start_trajectory_with_default_topics) {
     node.StartTrajectoryWithDefaultTopics(trajectory_options);
   }
-
+  
+  // ROS消息回调函数
   ::ros::spin();
 
   // 结束所有处于活动状态的轨迹
@@ -132,10 +133,10 @@ int main(int argc, char** argv) {
   CHECK(!FLAGS_configuration_basename.empty())
       << "-configuration_basename is missing.";
 
-  // ros节点的初始化
+  // ros节点的初始化,节点名为cartographer_node
   ::ros::init(argc, argv, "cartographer_node");
 
-  // 一般不需要在自己的代码中显式调用
+  // 启动ROS,一般不需要在自己的代码中显式调用
   // 但是若想在创建任何NodeHandle实例之前启动ROS相关的线程, 网络等, 可以显式调用该函数.
   ::ros::start();
 

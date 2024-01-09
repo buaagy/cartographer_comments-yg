@@ -13,8 +13,8 @@
 -- limitations under the License.
 
 POSE_GRAPH = {
-  -- 每隔多少个节点执行一次后端优化
-  optimize_every_n_nodes = 90,
+  -- 每隔多少个节点执行一次后端优化,设置为0则关闭global SLAM功能
+  optimize_every_n_nodes = 100,
 
   -- 约束构建的相关参数
   constraint_builder = {
@@ -76,7 +76,7 @@ POSE_GRAPH = {
 
   -- 优化残差方程的相关参数
   optimization_problem = {
-    huber_scale = 1e1,                -- 值越大,（潜在）异常值的影响就越大
+    huber_scale = 1e1,                -- 值越大,(潜在)异常值的影响就越大
     acceleration_weight = 1.1e2,      -- 3d里imu的线加速度的权重
     rotation_weight = 1.6e4,          -- 3d里imu的旋转的权重
     
