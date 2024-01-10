@@ -28,7 +28,7 @@ namespace sensor {
 
 namespace {
 
-// 只有点小于最大距离时才进行拷贝
+// 直通滤波,只有点小于最大距离时才进行拷贝
 PointCloud FilterByMaxRange(const PointCloud& point_cloud,
                             const float max_range) {
   return point_cloud.copy_if([max_range](const RangefinderPoint& point) {
@@ -36,48 +36,52 @@ PointCloud FilterByMaxRange(const PointCloud& point_cloud,
   });
 }
 
-// 自适应体素滤波
+// 自适应体素滤波,返回点云
 PointCloud AdaptivelyVoxelFiltered(
     const proto::AdaptiveVoxelFilterOptions& options,
     const PointCloud& point_cloud) {
-  // param: adaptive_voxel_filter.min_num_points 满足小于等于这个值的点云满足要求, 足够稀疏
+  // 小于等于adaptive_voxel_filter.min_num_points的点云已满足要求,即足够稀疏
   if (point_cloud.size() <= options.min_num_points()) {
     // 'point_cloud' is already sparse enough.
     return point_cloud;
   }
-  // param: adaptive_voxel_filter.max_length 进行一次体素滤波
+  
+  // 使用最大边长adaptive_voxel_filter.max_length(默认为0.5米)进行一次体素滤波
   PointCloud result = VoxelFilter(point_cloud, options.max_length());
-  // 如果按照最大边长进行体素滤波之后还超过这个数了, 就说明已经是这个参数下最稀疏的状态了, 直接返回
+  // 如果按照最大边长进行体素滤波之后还超过最小点数,则说明已经是这个参数下最稀疏的状态了,直接返回
+  // Filtering with 'max_length' resulted in a sufficiently dense point cloud
   if (result.size() >= options.min_num_points()) {
-    // Filtering with 'max_length' resulted in a sufficiently dense point cloud.
     return result;
   }
 
   // Search for a 'low_length' that is known to result in a sufficiently
   // dense point cloud. We give up and use the full 'point_cloud' if reducing
   // the edge length by a factor of 1e-2 is not enough.
-  // 将体素滤波的边长从max_length逐渐减小, 每次除以2
+  // 将体素滤波的边长从max_length逐渐减小,每次除以2,边长至少为max_length的1%
   for (float high_length = options.max_length();
        high_length > 1e-2f * options.max_length(); high_length /= 2.f) {
     // 减小边长再次进行体素滤波
     float low_length = high_length / 2.f;
     result = VoxelFilter(point_cloud, low_length);
     
-    // 重复for循环直到 滤波后的点数多于min_num_points
+    // 重复for循环,直到使用low_length滤波后的点数多于min_num_points
+    // 使用high_length滤波的点数少于min_num_points
+    // 然后使用二分查找法搜索到一个最合适的边长,当high_length<=1.1*low_length时停止迭代
+    // 目的就是使滤波后的点数刚好多于min_num_points
     if (result.size() >= options.min_num_points()) {
       // Binary search to find the right amount of filtering. 'low_length' gave
       // a sufficiently dense 'result', 'high_length' did not. We stop when the
       // edge length is at most 10% off.
-      // 以二分查找的方式找到合适的过滤边长, 当边缘长度最多减少 10% 时停止
       while ((high_length - low_length) / low_length > 1e-1f) {
+        // 使用均值边长mid_length进行体素滤波
         const float mid_length = (low_length + high_length) / 2.f;
         const PointCloud candidate = VoxelFilter(point_cloud, mid_length);
-        // 如果点数多, 就将边长变大, 让low_length变大
+        // 如果点数多,就将边长变大,让low_length变大
         if (candidate.size() >= options.min_num_points()) {
           low_length = mid_length;
           result = candidate;
         } 
-        // 如果点数少, 就将边长变小, 让high_length变小
+        // 如果点数少,就将边长变小,让high_length变小
         else {
           high_length = mid_length;
         }
@@ -90,7 +94,7 @@ PointCloud AdaptivelyVoxelFiltered(
 
 using VoxelKeyType = uint64_t;
 
-// 计算该点处于的voxel的序号
+// 计算给定点的voxel序号
 VoxelKeyType GetVoxelCellIndex(const Eigen::Vector3f& point,
                                const float resolution) {
   const Eigen::Array3f index = point.array() / resolution;
@@ -100,17 +104,17 @@ VoxelKeyType GetVoxelCellIndex(const Eigen::Vector3f& point,
   return (x << 42) + (y << 21) + z;
 }
 
-// 进行体素滤波, 标记体素滤波后的点
+// 进行体素滤波,返回标记
 template <class T, class PointFunction>
 std::vector<bool> RandomizedVoxelFilterIndices(
     const std::vector<T>& point_cloud, const float resolution,
     PointFunction&& point_function) {
-  // According to https://en.wikipedia.org/wiki/Reservoir_sampling
+  // 蓄水池采样,According to https://en.wikipedia.org/wiki/Reservoir_sampling
   std::minstd_rand0 generator;
-  // std::pair<int, int>的第一个元素保存该voxel内部的点的个数, 第二个元素保存该voxel中选择的那一个点的序号
+  // std::pair<int,int>的第一个元素保存该voxel内部的点的个数,第二个元素保存该voxel中选择的那一个点的序号
   absl::flat_hash_map<VoxelKeyType, std::pair<int, int>>
       voxel_count_and_point_index;
-  // 遍历所有的点, 计算
+  // 遍历所有的点,计算
   for (size_t i = 0; i < point_cloud.size(); i++) {
     // 获取VoxelKeyType对应的value的引用
     auto& voxel = voxel_count_and_point_index[GetVoxelCellIndex(
@@ -123,7 +127,7 @@ std::vector<bool> RandomizedVoxelFilterIndices(
     else {
       // 生成随机数的范围是 [1, voxel.first]
       std::uniform_int_distribution<> distribution(1, voxel.first);
-      // 生成的随机数与个数相等, 就让这个点代表这个体素格子
+      // 生成的随机数与个数相等,就让这个点代表这个体素格子
       if (distribution(generator) == voxel.first) {
         voxel.second = i;
       }
@@ -138,6 +142,7 @@ std::vector<bool> RandomizedVoxelFilterIndices(
   return points_used;
 }
 
+// 进行体素滤波,返回点云
 template <class T, class PointFunction>
 std::vector<T> RandomizedVoxelFilter(const std::vector<T>& point_cloud,
                                      const float resolution,
@@ -177,6 +182,8 @@ PointCloud VoxelFilter(const PointCloud& point_cloud, const float resolution) {
       filtered_points.push_back(point_cloud[i]);
     }
   }
+
+  // 生成滤波后的强度值
   std::vector<float> filtered_intensities;
   CHECK_LE(point_cloud.intensities().size(), point_cloud.points().size());
   for (size_t i = 0; i < point_cloud.intensities().size(); i++) {
@@ -222,9 +229,9 @@ proto::AdaptiveVoxelFilterOptions CreateAdaptiveVoxelFilterOptions(
 PointCloud AdaptiveVoxelFilter(
     const PointCloud& point_cloud,
     const proto::AdaptiveVoxelFilterOptions& options) {
+  // 距离原点超过adaptive_voxel_filter.max_range的点被移除
+  // 这里的最大距离是相对于local坐标系原点的
   return AdaptivelyVoxelFiltered(
-      // param: adaptive_voxel_filter.max_range 距远离原点超过max_range的点被移除
-      // 这里的最大距离是相对于local坐标系原点的
       options, FilterByMaxRange(point_cloud, options.max_range()));
 }
 

@@ -90,7 +90,7 @@ class PointCloud {
   }
 
  private:
-  // For 2D points, the third entry is 0.f.
+  // 对于2D点,第三个值为0.f
   std::vector<PointType> points_;
   // Intensities are optional. If non-empty, they must have the same size as
   // points.

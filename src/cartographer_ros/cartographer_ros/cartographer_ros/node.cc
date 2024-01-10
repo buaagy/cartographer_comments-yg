@@ -127,7 +127,7 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
  *
  * @param[in] node_options 配置文件的内容
  * @param[in] map_builder SLAM算法的具体实现
- * @param[in] tf_buffer tf
+ * @param[in] tf_buffer ROS系统中常用的坐标变换库tf2的缓存对象
  * @param[in] collect_metrics 是否启用metrics,默认不启用
  */
 Node::Node(
@@ -136,7 +136,7 @@ Node::Node(
     tf2_ros::Buffer* const tf_buffer, const bool collect_metrics)
     : node_options_(node_options),
       map_builder_bridge_(node_options_, std::move(map_builder), tf_buffer) {
-  // 将mutex_上锁, 防止在初始化时数据被更改
+  // 将互斥量mutex_上锁,防止在初始化时数据被更改;当构造函数运行结束之后会销毁lock变量
   absl::MutexLock lock(&mutex_);
 
   // 默认不启用
@@ -145,25 +145,24 @@ Node::Node(
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
   }
 
-  // Step: 1 声明需要发布的topic
-
-  // 发布SubmapList
+  // Step 1:声明需要发布的topic
+  // 发布构建好的submap列表
   submap_list_publisher_ =
       node_handle_.advertise<::cartographer_ros_msgs::SubmapList>(
           kSubmapListTopic, kLatestOnlyPublisherQueueSize);
-  // 发布轨迹
+  // 发布轨迹列表
   trajectory_node_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kTrajectoryNodeListTopic, kLatestOnlyPublisherQueueSize);
-  // 发布landmark_pose
+  // 发布路标点位姿列表
   landmark_poses_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kLandmarkPosesListTopic, kLatestOnlyPublisherQueueSize);
-  // 发布约束
+  // 发布约束列表
   constraint_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kConstraintListTopic, kLatestOnlyPublisherQueueSize);
-  // 发布tracked_pose, 默认不发布
+  // 发布tracked_pose,默认不发布
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_ =
         node_handle_.advertise<::geometry_msgs::PoseStamped>(
@@ -176,7 +175,7 @@ Node::Node(
             kPointCloudMapTopic, kLatestOnlyPublisherQueueSize, true);
   }
 
-  // Step: 2 声明发布对应名字的ROS服务, 并将服务的发布器放入到vector容器中
+  // Step 2:声明发布对应名字的ROS服务,并将服务的发布器放入到vector容器中
   service_servers_.push_back(node_handle_.advertiseService(
       kSubmapQueryServiceName, &Node::HandleSubmapQuery, this));
   service_servers_.push_back(node_handle_.advertiseService(
@@ -192,12 +191,12 @@ Node::Node(
   service_servers_.push_back(node_handle_.advertiseService(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
-  // Step: 3 处理之后的点云的发布器
+  // Step 3:处理之后的点云的发布器
   scan_matched_point_cloud_publisher_ =
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
 
-  // Step: 4 进行定时器与函数的绑定, 定时发布数据
+  // Step 4:进行定时器与函数的绑定,定时发布数据
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(node_options_.submap_publish_period_sec),  // 0.3s
       &Node::PublishSubmapList, this));

@@ -14,30 +14,30 @@
 
 TRAJECTORY_BUILDER_2D = {
   use_imu_data = true,            -- 是否使用imu数据
-  min_range = 0.,                 -- 雷达数据的最远最近滤波, 保存中间值
+  min_range = 0.,                 -- 雷达数据的最远最近滤波,保留中间值
   max_range = 30.,
-  min_z = -0.8,                   -- 雷达数据的最高与最低的过滤, 保存中间值
+  min_z = -0.8,                   -- 雷达数据的最高与最低的过滤,保留中间值
   max_z = 2.,
   missing_data_ray_length = 5.,   -- 超过最大距离范围的数据点用这个距离代替
   num_accumulated_range_data = 1, -- 几帧有效的点云数据进行一次扫描匹配
   voxel_filter_size = 0.025,      -- 体素滤波的立方体的边长(单位米)
 
-  -- 使用固定的voxel滤波之后, 再使用自适应体素滤波器
-  -- 体素滤波器 用于生成稀疏点云 以进行 扫描匹配
+  -- 使用固定尺寸的voxel滤波之后,再使用自适应体素滤波器
+  -- 体素滤波器用于生成稀疏点云,以进行扫描匹配
   adaptive_voxel_filter = {
     max_length = 0.5,             -- 尝试确定最佳的立方体边长,边长最大为0.5(单位米)
     min_num_points = 200,         -- 如果存在点数大于min_num_points,则减小体素长度以尝试获得该最小点数
     max_range = 50.,              -- 与原点距离超过max_range的点被移除(单位米)
   },
 
-  -- 闭环检测的自适应体素滤波器, 用于生成稀疏点云 以进行 闭环检测
+  -- 闭环检测的自适应体素滤波器，用于生成稀疏点云，以进行闭环检测
   loop_closure_adaptive_voxel_filter = {
     max_length = 0.9,
     min_num_points = 100,
     max_range = 50.,
   },
 
-  -- 是否使用 real_time_correlative_scan_matcher 为ceres提供先验信息
+  -- 是否使用real_time_correlative_scan_matcher为ceres scan matching提供先验信息
   -- 计算复杂度高,但是很鲁棒,在odom或者imu不准时依然能达到很好的效果
   use_online_correlative_scan_matching = false,
   real_time_correlative_scan_matcher = {
@@ -95,7 +95,7 @@ TRAJECTORY_BUILDER_2D = {
 
   -- 子图相关的一些配置
   submaps = {
-    num_range_data = 90,          -- 一个子图里插入雷达数据的个数的一半
+    num_range_data = 90,              -- 一个子图里插入雷达数据的个数的一半
     grid_options_2d = {
       grid_type = "PROBABILITY_GRID", -- 地图的种类, 还可以是tsdf格式
       resolution = 0.05,              -- 地图的分辨率
