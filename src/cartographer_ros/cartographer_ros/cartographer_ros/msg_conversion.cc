@@ -501,29 +501,22 @@ std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
 
       // source code
       // 根据像素值确定栅格占用值
-      const int value =
-          observed == 0
-              ? -1
-              : ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
+      int value = observed == 0 ? -1 : ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
 
-      /* note: 生成ROS兼容的栅格地图
-      * 像素值65-100的设置占用值为100,表示占用,代表障碍物
-      * 像素值0-19.6的设置占用值为0,表示空闲,代表可通过区域
-      * 像素值在中间的值保持不变,灰色
-      */
-      /*
-      int value = -1;
-      if (observed != 0)
-      {
-        int value_temp = ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
-        if (value_temp > 100 * 0.65)
-            value_temp = 100;
-        else if (value_temp < 100 * 0.196)
-            value_temp = 0;
-        value = value_temp;
+      /* 生成ROS兼容的栅格地图
+      * value值在65-100的设置占用值为100,表示占用,代表障碍物
+      * value值在0-19.6的设置占用值为0,表示空闲,代表可通过区域
+      * value值在19.6-65的设置占用值为-1,表示未观测 */
+      if (value != -1) {
+        if (value > 65) {
+          value = 100;
+        } else if (value > 19.6) {
+          value = -1;
+        } else {
+          value = 0;
+        }
       }
-      */
-
+      
       CHECK_LE(-1, value);
       CHECK_GE(100, value);
       occupancy_grid->data.push_back(value);
