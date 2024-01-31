@@ -17,9 +17,9 @@
 set -o errexit
 set -o verbose
 
-git clone https://github.com/abseil/abseil-cpp.git
+# git clone https://github.com/abseil/abseil-cpp.git
 cd abseil-cpp
-git checkout d902eb869bcfacc1bad14933ed9af4bed006d481
+# git checkout d902eb869bcfacc1bad14933ed9af4bed006d481
 mkdir build
 cd build
 cmake -G Ninja \
