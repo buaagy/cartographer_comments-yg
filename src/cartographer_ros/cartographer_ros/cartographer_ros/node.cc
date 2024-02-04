@@ -123,7 +123,7 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 
 /**
  * @brief
- * 声明ROS的一些topic的发布器, 服务的发布器, 以及将时间驱动的函数与定时器进行绑定
+ * 声明ROS的一些topic的发布器,服务的发布器,以及将时间驱动的函数与定时器进行绑定
  *
  * @param[in] node_options 配置文件的内容
  * @param[in] map_builder SLAM算法的具体实现
@@ -191,28 +191,32 @@ Node::Node(
   service_servers_.push_back(node_handle_.advertiseService(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
-  // Step 3:处理之后的点云的发布器
+  // Step 3:匹配后的点云的发布器
   scan_matched_point_cloud_publisher_ =
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
 
-  // Step 4:进行定时器与函数的绑定,定时发布数据
+  // Step 4:使用wall_timers_保存各种定时器,并将进行定时器与函数的绑定,定时发布数据
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(node_options_.submap_publish_period_sec),  // 0.3s
       &Node::PublishSubmapList, this));
+  // 位姿
   if (node_options_.pose_publish_period_sec > 0) {
     publish_local_trajectory_data_timer_ = node_handle_.createTimer(
         ::ros::Duration(node_options_.pose_publish_period_sec),  // 5e-3s
         &Node::PublishLocalTrajectoryData, this);
   }
+  // 轨迹
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(
           node_options_.trajectory_publish_period_sec),  // 30e-3s
       &Node::PublishTrajectoryNodeList, this));
+  // 路标位姿
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(
           node_options_.trajectory_publish_period_sec),  // 30e-3s
       &Node::PublishLandmarkPosesList, this));
+  // 约束
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(kConstraintPublishPeriodSec),  // 0.5s
       &Node::PublishConstraintList, this));
@@ -600,25 +604,25 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
  * @return int 新生成的轨迹的id
  */
 int Node::AddTrajectory(const TrajectoryOptions& options) {
-
+  // 根据配置options获取SensorId
   const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
       expected_sensor_ids = ComputeExpectedSensorIds(options);
 
-  // 调用map_builder_bridge的AddTrajectory, 添加一个轨迹
+  // 调用map_builder_bridge的AddTrajectory,添加一个轨迹,并获取轨迹的ID
   const int trajectory_id =
       map_builder_bridge_.AddTrajectory(expected_sensor_ids, options);
 
-  // 新增一个位姿估计器
+  // 新增一个位姿外推器
   AddExtrapolator(trajectory_id, options);
 
   // 新生成一个传感器数据采样器
   AddSensorSamplers(trajectory_id, options);
 
-  // 订阅话题与注册回调函数
+  // 订阅传感器话题,注册回调函数
   LaunchSubscribers(options, trajectory_id);
 
-  // 创建了一个3s执行一次的定时器,由于oneshot=true, 所以只执行一次
-  // 检查设置的topic名字是否在ros中存在, 不存在则报错
+  // 创建了一个3s执行一次的定时器,由于oneshot=true,所以只执行一次
+  // 检查设置的topic名字是否在ros中存在,不存在则报错
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(kTopicMismatchCheckDelaySec), // kTopicMismatchCheckDelaySec = 3s
       &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
@@ -639,7 +643,7 @@ int Node::AddTrajectory(const TrajectoryOptions& options) {
  */
 void Node::LaunchSubscribers(const TrajectoryOptions& options,
                              const int trajectory_id) {
-  // laser_scan 的订阅与注册回调函数, 多个laser_scan 的topic 共用同一个回调函数
+  // laser_scan单线激光的订阅与注册回调函数,多个laser_scan的topic共用同一个回调函数
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kLaserScanTopic, options.num_laser_scans)) {
     subscribers_[trajectory_id].push_back(
@@ -649,7 +653,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          topic});
   }
 
-  // multi_echo_laser_scans的订阅与注册回调函数
+  // multi_echo_laser_scans多线激光的订阅与注册回调函数
   for (const std::string& topic : ComputeRepeatedTopicNames(
            kMultiEchoLaserScanTopic, options.num_multi_echo_laser_scans)) {
     subscribers_[trajectory_id].push_back(
@@ -659,7 +663,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          topic});
   }
   
-  // point_clouds 的订阅与注册回调函数
+  // point_clouds的订阅与注册回调函数
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kPointCloud2Topic, options.num_point_clouds)) {
     subscribers_[trajectory_id].push_back(
@@ -669,9 +673,9 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          topic});
   }
 
-  // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
-  // required.
-  // imu 的订阅与注册回调函数,只有一个imu的topic
+  // For 2D SLAM, subscribe to the IMU if we expect it
+  // For 3D SLAM, the IMU is required
+  // imu的订阅与注册回调函数,只有一个imu的topic
   if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
@@ -683,7 +687,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          kImuTopic});
   }
 
-  // odometry 的订阅与注册回调函数,只有一个odometry的topic
+  // odometry里程计的订阅与注册回调函数,只有一个odometry的topic
   if (options.use_odometry) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<nav_msgs::Odometry>(&Node::HandleOdometryMessage,
@@ -692,7 +696,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          kOdometryTopic});
   }
 
-  // gps 的订阅与注册回调函数,只有一个gps的topic
+  // gps的订阅与注册回调函数,只有一个gps的topic
   if (options.use_nav_sat) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::NavSatFix>(
@@ -701,7 +705,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          kNavSatFixTopic});
   }
 
-  // landmarks 的订阅与注册回调函数,只有一个landmarks的topic
+  // landmarks路标的订阅与注册回调函数,只有一个landmarks的topic
   if (options.use_landmarks) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(
@@ -901,6 +905,7 @@ bool Node::HandleStartTrajectory(
 
 // 使用默认topic名字开始一条轨迹,也就是开始slam
 void Node::StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options) {
+  // 加锁
   absl::MutexLock lock(&mutex_);
   // 检查TrajectoryOptions是否存在2d或者3d轨迹的配置信息
   CHECK(ValidateTrajectoryOptions(options));

@@ -36,7 +36,9 @@ class MapBuilder : public MapBuilderInterface {
   explicit MapBuilder(const proto::MapBuilderOptions &options);
   ~MapBuilder() override {}
 
+  // 禁用拷贝构造函数
   MapBuilder(const MapBuilder &) = delete;
+  // 禁用赋值运算符
   MapBuilder &operator=(const MapBuilder &) = delete;
 
   int AddTrajectoryBuilder(
@@ -88,11 +90,11 @@ class MapBuilder : public MapBuilderInterface {
   const proto::MapBuilderOptions options_;
   common::ThreadPool thread_pool_; // 线程池
 
-  std::unique_ptr<PoseGraph> pose_graph_;
+  std::unique_ptr<PoseGraph> pose_graph_; // 后端
 
   std::unique_ptr<sensor::CollatorInterface> sensor_collator_;
   std::vector<std::unique_ptr<mapping::TrajectoryBuilderInterface>>
-      trajectory_builders_;
+      trajectory_builders_; // 前端
   std::vector<proto::TrajectoryBuilderOptionsWithSensorIds>
       all_trajectory_builder_options_;
 };

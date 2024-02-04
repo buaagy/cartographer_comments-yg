@@ -22,7 +22,7 @@
 namespace cartographer {
 namespace sensor {
 
-// 根据给定的坐标变换, 分别对origin, returns, misses做变换, 拷贝
+// 根据给定的坐标变换,分别对origin,returns,misses做变换
 RangeData TransformRangeData(const RangeData& range_data,
                              const transform::Rigid3f& transform) {
   return RangeData{
@@ -33,12 +33,12 @@ RangeData TransformRangeData(const RangeData& range_data,
 }
 
 /**
- * @brief 对输入的点云进行z轴上的过滤
+ * @brief 对输入的点云进行z轴上的裁减(过滤)
  * 
  * @param[in] range_data 原始点云数据
  * @param[in] min_z 最小的z坐标
  * @param[in] max_z 最大的z坐标
- * @return RangeData 裁剪之后的点云 拷贝
+ * @return RangeData 裁剪之后的点云
  */
 RangeData CropRangeData(const RangeData& range_data, const float min_z,
                         const float max_z) {
@@ -47,6 +47,7 @@ RangeData CropRangeData(const RangeData& range_data, const float min_z,
                    CropPointCloud(range_data.misses, min_z, max_z)};  // 拷贝
 }
 
+// 将RangeData转换为proto::RangeData
 proto::RangeData ToProto(const RangeData& range_data) {
   proto::RangeData proto;
   *proto.mutable_origin() = transform::ToProto(range_data.origin);
@@ -61,6 +62,7 @@ proto::RangeData ToProto(const RangeData& range_data) {
   return proto;
 }
 
+// 将proto::RangeData转换为RangeData
 RangeData FromProto(const proto::RangeData& proto) {
   std::vector<RangefinderPoint> returns;
   if (proto.returns_size() > 0) {

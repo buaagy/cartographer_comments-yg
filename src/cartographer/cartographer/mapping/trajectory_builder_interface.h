@@ -80,7 +80,7 @@ class TrajectoryBuilderInterface {
                          std::unique_ptr<const InsertionResult>)>;
 
   struct SensorId {
-    // c++11: 限域枚举 enum class 
+    // c++11:限域枚举enum class 
     enum class SensorType {
       RANGE = 0,
       IMU,

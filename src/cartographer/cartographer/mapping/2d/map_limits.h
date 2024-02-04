@@ -80,7 +80,7 @@ class MapLimits {
 
   // Returns the corner of the limits, i.e., all pixels have positions with
   // smaller coordinates.
-  // 返回左上角坐标, 左上角坐标为整个坐标系坐标的最大值
+  // 返回左上角坐标,左上角坐标为整个坐标系中的最大坐标值
   const Eigen::Vector2d& max() const { return max_; }
 
   // Returns the limits of the grid in number of cells.

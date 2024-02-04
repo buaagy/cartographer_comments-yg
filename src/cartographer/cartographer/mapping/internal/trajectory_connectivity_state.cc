@@ -24,7 +24,7 @@ void TrajectoryConnectivityState::Add(const int trajectory_id) {
   connected_components_.Add(trajectory_id);
 }
 
-// 连接两条轨迹. 如果任一轨迹未跟踪, 则将对其进行跟踪,重复调用 Connect 会增加连接计数并更新上次连接时间
+// 连接两条轨迹.如果任一轨迹未跟踪,则将对其进行跟踪,重复调用Connect会增加连接计数并更新上次连接时间
 void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
                                           const int trajectory_id_b,
                                           const common::Time time) {

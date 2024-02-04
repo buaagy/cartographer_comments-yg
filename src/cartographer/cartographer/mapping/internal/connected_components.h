@@ -27,6 +27,7 @@
 namespace cartographer {
 namespace mapping {
 
+// 记录轨迹之间的连接结构
 // A class that tracks the connectivity structure between trajectories.
 //
 // Connectivity includes both the count ("How many times have I _directly_

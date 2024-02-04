@@ -304,7 +304,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   // 进行位姿的预测,得到先验位姿
   const transform::Rigid3d non_gravity_aligned_pose_prediction =
       extrapolator_->ExtrapolatePose(time);
-  // 将三维位姿先旋转到姿态为0,再取xy坐标将三维位姿转成二维位姿
+  // 先进行重力矫正,将三维位姿先旋转到姿态为0;再取xy坐标将三维位姿转成二维位姿
   const transform::Rigid2d pose_prediction = transform::Project2D(
       non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
 

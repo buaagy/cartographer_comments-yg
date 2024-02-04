@@ -49,7 +49,7 @@ visualization_msgs::Marker CreateTrajectoryMarker(const int trajectory_id,
   visualization_msgs::Marker marker;
   marker.ns = absl::StrCat("Trajectory ", trajectory_id);
   marker.id = 0;
-  // note: Marker::LINE_STRIP 它会在每两个连续的点之间画一条线 eg: 0-1, 1-2, 2-3
+  // Marker::LINE_STRIP会在每两个连续的点之间画一条线,如0-1,1-2,2-3
   marker.type = visualization_msgs::Marker::LINE_STRIP;
   marker.header.stamp = ::ros::Time::now();
   marker.header.frame_id = frame_id;
@@ -102,7 +102,7 @@ void PushAndResetLineMarker(visualization_msgs::Marker* marker,
 }  // namespace
 
 /**
- * @brief 根据传入的node_options, MapBuilder, 以及tf_buffer 完成三个本地变量的初始化
+ * @brief 根据传入的node_options,MapBuilder,以及tf_buffer完成三个成员变量的初始化
  * 
  * @param[in] node_options 参数配置
  * @param[in] map_builder 在node_main.cc中传入的MapBuilder
@@ -139,10 +139,10 @@ int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
         expected_sensor_ids,
     const TrajectoryOptions& trajectory_options) {
-  // Step: 1 开始一条新的轨迹, 返回新轨迹的id,需要传入一个函数
+  // Step1,调用map_builder_添加一个新的轨迹构建器,并返回新轨迹的id
   const int trajectory_id = map_builder_->AddTrajectoryBuilder(
       expected_sensor_ids, trajectory_options.trajectory_builder_options,
-      // lambda表达式 local_slam_result_callback_
+      // lambda表达式,注册回调函数local_slam_result_callback_
       [this](const int trajectory_id, 
              const ::cartographer::common::Time time,
              const Rigid3d local_pose,
@@ -150,14 +150,15 @@ int MapBuilderBridge::AddTrajectory(
              const std::unique_ptr<
                  const ::cartographer::mapping::TrajectoryBuilderInterface::
                      InsertionResult>) {
-        // 保存local slam 的结果数据 5个参数实际只用了4个
+        // 保存local slam的结果数据,5个参数实际只用了4个
         OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);
       });
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
   // Make sure there is no trajectory with 'trajectory_id' yet.
   CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
-  // Step: 2 为这个新轨迹 添加一个SensorBridge
+  
+  // Step2,为这个新轨迹添加一个SensorBridge
   sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
       trajectory_options.num_subdivisions_per_laser_scan,
       trajectory_options.tracking_frame,
@@ -165,7 +166,7 @@ int MapBuilderBridge::AddTrajectory(
       tf_buffer_,
       map_builder_->GetTrajectoryBuilder(trajectory_id)); // CollatedTrajectoryBuilder
   
-  // Step: 3 保存轨迹的参数配置
+  // Step3,保存轨迹的参数配置
   auto emplace_result =
       trajectory_options_.emplace(trajectory_id, trajectory_options);
   CHECK(emplace_result.second == true);
@@ -658,7 +659,7 @@ SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id) {
 }
 
 /**
- * @brief 保存local slam 的结果
+ * @brief 保存local slam的结果
  * 
  * @param[in] trajectory_id 当前轨迹id
  * @param[in] time 扫描匹配的时间
@@ -669,12 +670,14 @@ void MapBuilderBridge::OnLocalSlamResult(
     const int trajectory_id, const ::cartographer::common::Time time,
     const Rigid3d local_pose,
     ::cartographer::sensor::RangeData range_data_in_local) {
+  // 构建对象local_slam_data,用于记录局部SLAM反馈的状态
   std::shared_ptr<const LocalTrajectoryData::LocalSlamData> local_slam_data =
       std::make_shared<LocalTrajectoryData::LocalSlamData>(
           LocalTrajectoryData::LocalSlamData{time, local_pose,
                                              std::move(range_data_in_local)});
-  // 保存结果数据
+  // 加锁
   absl::MutexLock lock(&mutex_);
+  // 保存结果数据
   local_slam_data_[trajectory_id] = std::move(local_slam_data);
 }
 

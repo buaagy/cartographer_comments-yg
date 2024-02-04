@@ -39,7 +39,7 @@
 namespace cartographer {
 namespace mapping {
   
-// c++11: 匿名命名空间, 作用域被限制在本文件内
+// c++11:匿名命名空间,作用域被限制在本文件内
 namespace { 
 
 using mapping::proto::SerializedData;
@@ -79,9 +79,9 @@ void MaybeAddPureLocalizationTrimmer(
 }  // namespace
 
 /**
- * @brief 保存配置参数, 根据给定的参数初始化线程池, 并且初始化pose_graph_与sensor_collator_
+ * @brief 构造函数,用于保存配置参数,根据给定的参数初始化线程池,并且初始化pose_graph_与sensor_collator_
  * 
- * @param[in] options proto::MapBuilderOptions格式的 map_builder参数
+ * @param[in] options proto::MapBuilderOptions格式的map_builder参数
  */
 MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) { // param: num_background_threads
@@ -105,23 +105,22 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
         &thread_pool_);
   } 
 
-  // 在 cartographer/configuration_files/map_builder.lua 中设置
-  // param: MAP_BUILDER.collate_by_trajectory 默认为false
+  // 在cartographer/configuration_files/map_builder.lua中设置
+  // MAP_BUILDER.collate_by_trajectory默认为false
   if (options.collate_by_trajectory()) {
     sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
   } else {
-    // sensor_collator_初始化, 实际使用这个
+    // sensor_collator_初始化,实际使用这个
     sensor_collator_ = absl::make_unique<sensor::Collator>();
   }
 }
 
 /**
- * @brief 创建一个新的 TrajectoryBuilder 并返回它的 trajectory_id
+ * @brief 创建一个新的TrajectoryBuilder并返回它的trajectory_id
  * 
  * @param[in] expected_sensor_ids 所有需要的topic的名字的集合
  * @param[in] trajectory_options 轨迹的参数配置
- * @param[in] local_slam_result_callback 需要传入的回调函数
- *        实际上是map_builder_bridge.cc 中的 OnLocalSlamResult() 函数
+ * @param[in] local_slam_result_callback 需要传入的回调函数,实际是map_builder_bridge.cc中OnLocalSlamResult()函数
  * @return int 新生成的轨迹的id
  */
 int MapBuilder::AddTrajectoryBuilder(
@@ -129,15 +128,15 @@ int MapBuilder::AddTrajectoryBuilder(
     const proto::TrajectoryBuilderOptions& trajectory_options,
     LocalSlamResultCallback local_slam_result_callback) {
 
-  // id是从零开始的, 所以新trajectory_id就是trajectory_builders_的size()
+  // id是从零开始的,所以新的trajectory_id就是trajectory_builders_的size()
   const int trajectory_id = trajectory_builders_.size();
 
-  // 运动过滤器, 运动太小没必要进行更新
-  // 配置文件中没有 pose_graph_odometry_motion_filte
+  // 运动过滤器,运动太小没必要进行更新
+  // 配置文件中没有pose_graph_odometry_motion_filte
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter;
 
   // LOG(INFO) << "pose_graph odometry_motion_filter is " << trajectory_options.has_pose_graph_odometry_motion_filter();
-  // 上面会打印出0, 所以没有使用后端的里程计的motion_filter
+  // 上面会打印出0,所以没有使用后端的里程计的motion_filter
 
   if (trajectory_options.has_pose_graph_odometry_motion_filter()) {
     LOG(INFO) << "Using a motion filter for adding odometry to the pose graph.";
@@ -145,8 +144,8 @@ int MapBuilder::AddTrajectoryBuilder(
         MotionFilter(trajectory_options.pose_graph_odometry_motion_filter()));
   }
 
-  // LocalTrajectoryBuilder 就是前端, 不带 Loop Closure 
-  // 包含了 Pose Extrapolator, Scan Matching, 生成submap 等
+  // LocalTrajectoryBuilder就是前端,不带Loop Closure
+  // 包含了Pose Extrapolator,Scan Matching,生成submap等
 
   // 3d的轨迹
   if (options_.use_trajectory_builder_3d()) {
@@ -209,7 +208,7 @@ int MapBuilder::AddTrajectoryBuilder(
             local_slam_result_callback, pose_graph_odometry_motion_filter)));
   }
 
-  // 是否是纯定位模式, 如果是则只保存最近3个submap
+  // 是否是纯定位模式,如果是则只保存最近3个submap
   MaybeAddPureLocalizationTrimmer(trajectory_id, trajectory_options,
                                   pose_graph_.get());
 
@@ -252,7 +251,7 @@ int MapBuilder::AddTrajectoryForDeserialization(
   return trajectory_id;
 }
 
-// 结束指定id的轨迹, 分别进行 传感器数据处理的结束 与 位姿图的结束
+// 结束指定id的轨迹,分别结束传感器数据处理与位姿图
 void MapBuilder::FinishTrajectory(const int trajectory_id) {
   sensor_collator_->FinishTrajectory(trajectory_id);
   pose_graph_->FinishTrajectory(trajectory_id);
@@ -309,7 +308,7 @@ std::map<int, int> MapBuilder::LoadState(
   const auto& all_builder_options_proto =
       deserializer.all_trajectory_builder_options();
 
-  // key为pbstream文件中的轨迹id, value为新生成的轨迹的id
+  // key为pbstream文件中的轨迹id,value为新生成的轨迹的id
   std::map<int, int> trajectory_remapping;
 
   // 从文件中添加轨迹

@@ -25,7 +25,7 @@
 namespace cartographer_ros {
 
 /**
- * @brief 读取lua文件内容, 将lua文件的内容赋值给NodeOptions
+ * @brief 读取lua文件内容,将lua文件的内容赋值给NodeOptions
  * 
  * @param lua_parameter_dictionary lua字典
  * @return NodeOptions 
@@ -36,7 +36,7 @@ NodeOptions CreateNodeOptions(
           
   NodeOptions options;
 
-  // 根据lua字典中的参数, 生成protobuf的序列化数据结构 proto::MapBuilderOptions
+  // 根据lua字典中的参数,生成protobuf的序列化数据结构proto::MapBuilderOptions
   options.map_builder_options =
       ::cartographer::mapping::CreateMapBuilderOptions(
           lua_parameter_dictionary->GetDictionary("map_builder").get());
@@ -44,20 +44,26 @@ NodeOptions CreateNodeOptions(
   options.map_frame = lua_parameter_dictionary->GetString("map_frame");
   options.lookup_transform_timeout_sec =
       lua_parameter_dictionary->GetDouble("lookup_transform_timeout_sec");
+  // 子图发布周期(s)
   options.submap_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
+      lua_parameter_dictionary->GetDouble("submap_publish_period_sec")
+  // 位姿发布周期(s)
   options.pose_publish_period_sec =
       lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
+  // 轨迹发布周期(s)
   options.trajectory_publish_period_sec =
       lua_parameter_dictionary->GetDouble("trajectory_publish_period_sec");
+  // 是否发布到tf
   if (lua_parameter_dictionary->HasKey("publish_to_tf")) {
     options.publish_to_tf =
         lua_parameter_dictionary->GetBool("publish_to_tf");
   }
+  // 是否发布tracked_pose
   if (lua_parameter_dictionary->HasKey("publish_tracked_pose")) {
     options.publish_tracked_pose =
         lua_parameter_dictionary->GetBool("publish_tracked_pose");
   }
+  // 是否使用位姿外推器
   if (lua_parameter_dictionary->HasKey("use_pose_extrapolator")) {
     options.use_pose_extrapolator =
         lua_parameter_dictionary->GetBool("use_pose_extrapolator");
@@ -70,7 +76,7 @@ NodeOptions CreateNodeOptions(
  * 
  * @param[in] configuration_directory 配置文件所在目录
  * @param[in] configuration_basename 配置文件的名字
- * @return std::tuple<NodeOptions, TrajectoryOptions> 返回节点的配置与轨迹的配置
+ * @return std::tuple<NodeOptions, TrajectoryOptions> 返回节点与轨迹的配置参数
  */
 std::tuple<NodeOptions, TrajectoryOptions> LoadOptions(
     const std::string& configuration_directory,
@@ -88,8 +94,8 @@ std::tuple<NodeOptions, TrajectoryOptions> LoadOptions(
   cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
       code, std::move(file_resolver));
 
-  // 创建元组tuple,元组定义了一个有固定数目元素的容器, 其中的每个元素类型都可以不相同
-  // 将配置文件的内容填充进NodeOptions与TrajectoryOptions, 并返回
+  // 创建元组tuple,元组定义了一个有固定数目元素的容器,其中的每个元素类型都可以不相同
+  // 将配置文件的内容填充进NodeOptions与TrajectoryOptions,并返回
   return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
                          CreateTrajectoryOptions(&lua_parameter_dictionary));
 }
