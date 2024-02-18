@@ -28,16 +28,19 @@ namespace scan_matching {
 // Cost increases with the solution's distance from 'target_translation'.
 class TranslationDeltaCostFunctor2D {
  public:
-  // 静态成员函数, 返回CostFunction
+  // 静态成员函数,返回CostFunction
   static ceres::CostFunction* CreateAutoDiffCostFunction(
       const double scaling_factor, const Eigen::Vector2d& target_translation) {
+    // ceres::AutoDiffCostFunction是一个模板类,该模板类第一个模板参数是一个函数类型(代价函数),也可以是一个仿函数
+    // 第二个非类型模板参数表示残差的维度,2表示2维,因为后续要求的是x,y的残差
+    // 第三个非类型模板参数表示block 0中的参数个数
     return new ceres::AutoDiffCostFunction<TranslationDeltaCostFunctor2D,
                                            2 /* residuals */,
                                            3 /* pose variables */>(
         new TranslationDeltaCostFunctor2D(scaling_factor, target_translation));
   }
 
-  // 平移量残差的计算, (pose[0] - x_)的平方ceres会自动加上
+  // 平移量残差的计算,(pose[0] - x_)的平方ceres会自动加上
   template <typename T>
   bool operator()(const T* const pose, T* residual) const {
     residual[0] = scaling_factor_ * (pose[0] - x_);

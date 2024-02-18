@@ -28,7 +28,7 @@ namespace scan_matching {
 // the solution's distance from 'target_angle'.
 class RotationDeltaCostFunctor2D {
  public:
-  // 静态成员函数, 返回CostFunction
+  // 静态成员函数,返回CostFunction
   static ceres::CostFunction* CreateAutoDiffCostFunction(
       const double scaling_factor, const double target_angle) {
     return new ceres::AutoDiffCostFunction<

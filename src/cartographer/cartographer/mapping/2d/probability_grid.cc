@@ -44,14 +44,14 @@ ProbabilityGrid::ProbabilityGrid(const proto::Grid2D& proto,
 
 // Sets the probability of the cell at 'cell_index' to the given
 // 'probability'. Only allowed if the cell was unknown before.
-// 将 索引 处单元格的概率设置为给定的概率, 仅当单元格之前处于未知状态时才允许
+// 将索引处单元格的概率设置为给定的概率,仅当单元格之前处于未知状态时才允许
 void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
                                      const float probability) {
   // 获取对应栅格的引用
   uint16& cell =
       (*mutable_correspondence_cost_cells())[ToFlatIndex(cell_index)];
   CHECK_EQ(cell, kUnknownProbabilityValue);
-  // 为栅格赋值 value
+  // 为栅格赋值
   cell =
       CorrespondenceCostToValue(ProbabilityToCorrespondenceCost(probability));
   // 更新bounding_box

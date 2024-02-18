@@ -35,6 +35,7 @@ proto::CeresScanMatcherOptions2D CreateCeresScanMatcherOptions2D(
     common::LuaParameterDictionary* parameter_dictionary);
 
 // Align scans with an existing map using Ceres.
+// 基于Ceres的scan-to-map matching
 class CeresScanMatcher2D {
  public:
   explicit CeresScanMatcher2D(const proto::CeresScanMatcherOptions2D& options);
@@ -54,7 +55,7 @@ class CeresScanMatcher2D {
 
  private:
   const proto::CeresScanMatcherOptions2D options_;
-  ceres::Solver::Options ceres_solver_options_;
+  ceres::Solver::Options ceres_solver_options_; // ceres::Solver的参数
 };
 
 }  // namespace scan_matching

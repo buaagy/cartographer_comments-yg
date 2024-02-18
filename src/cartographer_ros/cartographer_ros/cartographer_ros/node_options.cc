@@ -46,7 +46,7 @@ NodeOptions CreateNodeOptions(
       lua_parameter_dictionary->GetDouble("lookup_transform_timeout_sec");
   // 子图发布周期(s)
   options.submap_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("submap_publish_period_sec")
+      lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
   // 位姿发布周期(s)
   options.pose_publish_period_sec =
       lua_parameter_dictionary->GetDouble("pose_publish_period_sec");

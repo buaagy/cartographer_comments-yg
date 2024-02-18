@@ -526,7 +526,7 @@ void Node::PublishConstraintList(
 }
 
 /**
- * @brief 根据配置文件, 确定所有需要的topic的名字的集合
+ * @brief 根据配置文件,确定所有需要的topic的名字的集合
  *
  * @param[in] options TrajectoryOptions的配置文件
  * @return std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
@@ -551,11 +551,12 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
  
   using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
   using SensorType = SensorId::SensorType;
+  // 所有需要的话题
   std::set<SensorId> expected_topics;
-  // Subscribe to all laser scan, multi echo laser scan, and point cloud topics.
-
-  // 如果只有一个传感器, 那订阅的topic就是topic
-  // 如果是多个传感器, 那订阅的topic就是topic_1,topic_2, 依次类推
+  
+  // 订阅所有RANGE类传感器,包括laser scan,multi echo laser scan和point cloud的话题
+  // 如果只有一个传感器,那订阅的topic就是topic
+  // 如果是多个传感器,那订阅的topic就是topic_1,topic_2,依次类推
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kLaserScanTopic, options.num_laser_scans)) {
     expected_topics.insert(SensorId{SensorType::RANGE, topic});
@@ -568,31 +569,36 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
        ComputeRepeatedTopicNames(kPointCloud2Topic, options.num_point_clouds)) {
     expected_topics.insert(SensorId{SensorType::RANGE, topic});
   }
-  // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
-  // required.
-  // 3d slam必须有imu, 2d可有可无, imu的topic的个数只能有一个
+
+  // For 2D SLAM, subscribe to the IMU if we expect it
+  // For 3D SLAM, the IMU is required.
+  // 3d slam必须有imu,2d可有可无,imu的topic的个数只能有一个
   if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
            .use_imu_data())) {
     expected_topics.insert(SensorId{SensorType::IMU, kImuTopic});
   }
-  // Odometry is optional.
-  // 里程计可有可无, topic的个数只能有一个
+  
+  // Odometry is optional
+  // 里程计可有可无,topic的个数只能有一个
   if (options.use_odometry) {
     expected_topics.insert(SensorId{SensorType::ODOMETRY, kOdometryTopic});
   }
-  // NavSatFix is optional.
-  // gps可有可无, topic的个数只能有一个
+  
+  // NavSatFix is optional
+  // gps可有可无,topic的个数只能有一个
   if (options.use_nav_sat) {
     expected_topics.insert(
         SensorId{SensorType::FIXED_FRAME_POSE, kNavSatFixTopic});
   }
-  // Landmark is optional.
-  // Landmark可有可无, topic的个数只能有一个
+  
+  // Landmark is optional
+  // Landmark可有可无,topic的个数只能有一个
   if (options.use_landmarks) {
     expected_topics.insert(SensorId{SensorType::LANDMARK, kLandmarkTopic});
   }
+  
   // 返回传感器的topic名字
   return expected_topics;
 }

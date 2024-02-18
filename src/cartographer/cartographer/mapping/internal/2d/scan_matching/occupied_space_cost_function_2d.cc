@@ -41,28 +41,32 @@ class OccupiedSpaceCostFunction2D {
     Eigen::Matrix<T, 2, 1> translation(pose[0], pose[1]);
     Eigen::Rotation2D<T> rotation(pose[2]);
     Eigen::Matrix<T, 2, 2> rotation_matrix = rotation.toRotationMatrix();
+    // 3*3的变换矩阵(包含平移和旋转)
     Eigen::Matrix<T, 3, 3> transform;
     transform << rotation_matrix, translation, T(0.), T(0.), T(1.);
-
+    
+    // 构造ceres双三次插值器
     const GridArrayAdapter adapter(grid_);
     ceres::BiCubicInterpolator<GridArrayAdapter> interpolator(adapter);
     const MapLimits& limits = grid_.limits();
-
+    
+    // 遍历当前scan的所有点,计算每个点对应的栅格地图概率
     for (size_t i = 0; i < point_cloud_.size(); ++i) {
+      // 2D点,第三个元素是缩放因子
       // Note that this is a 2D point. The third component is a scaling factor.
       const Eigen::Matrix<T, 3, 1> point((T(point_cloud_[i].position.x())),
                                          (T(point_cloud_[i].position.y())),
                                          T(1.));
-      // 根据预测位姿对单个点进行坐标变换
+      // 根据预测位姿对单个点进行坐标变换,从传感器坐标系转到世界坐标系
       const Eigen::Matrix<T, 3, 1> world = transform * point;
-      // 获取三次插值之后的栅格free值, Evaluate函数内部调用了GetValue函数
+      // 获取三次插值之后的栅格free值,Evaluate函数内部调用了GetValue函数
       interpolator.Evaluate(
           (limits.max().x() - world[0]) / limits.resolution() - 0.5 +
               static_cast<double>(kPadding),
           (limits.max().y() - world[1]) / limits.resolution() - 0.5 +
               static_cast<double>(kPadding),
           &residual[i]);
-      // free值越小, 表示占用的概率越大
+      // free值越小,表示占用的概率越大
       residual[i] = scaling_factor_ * residual[i];
     }
     return true;
@@ -74,14 +78,14 @@ class OccupiedSpaceCostFunction2D {
   // 自定义网格
   class GridArrayAdapter {
    public:
-    // 枚举 DATA_DIMENSION 表示被插值的向量或者函数的维度
+    // 枚举DATA_DIMENSION表示被插值的向量或者函数的维度
     enum { DATA_DIMENSION = 1 };
 
     explicit GridArrayAdapter(const Grid2D& grid) : grid_(grid) {}
 
     // 获取栅格free值
     void GetValue(const int row, const int column, double* const value) const {
-      // 处于地图外部时, 赋予最大free值
+      // 处于地图外部时,赋予最大free值
       if (row < kPadding || column < kPadding || row >= NumRows() - kPadding ||
           column >= NumCols() - kPadding) {
         *value = kMaxCorrespondenceCost;
@@ -93,7 +97,7 @@ class OccupiedSpaceCostFunction2D {
       }
     }
 
-    // map上下左右各增加 kPadding
+    // map上下左右各增加kPadding
     int NumRows() const {
       return grid_.limits().cell_limits().num_y_cells + 2 * kPadding;
     }

@@ -83,7 +83,7 @@ void Run() {
   // 这样能够减少不必要的临时对象的创建、拷贝以及销毁,能够大幅度提高C++应用程序的性能
   // 临时对象的维护(创建和销毁)对性能有严重影响
 
-  // Node类的初始化,将ROS的topic传入SLAM,也就是MapBuilder
+  // Node类的初始化,将ROS的话题传入SLAM,也就是MapBuilder
   Node node(node_options, std::move(map_builder), &tf_buffer,
             FLAGS_collect_metrics);
 
