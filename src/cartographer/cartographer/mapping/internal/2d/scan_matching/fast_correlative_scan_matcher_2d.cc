@@ -40,10 +40,10 @@ namespace {
 // A collection of values which can be added and later removed, and the maximum
 // of the current values in the collection can be retrieved.
 // All of it in (amortized) O(1).
-// 滑动窗口算法
+// 滑动窗口最大值,第一个值始终是最大的
 class SlidingWindowMaximum {
  public:
-  // 添加值, 会将小于填入值的其他值删掉, 再将这个值放到最后
+  // 添加值,会将小于添加值的其他值删掉,再将这个值放到最后
   void AddValue(const float value) {
     while (!non_ascending_maxima_.empty() &&
            value > non_ascending_maxima_.back()) {
@@ -52,7 +52,7 @@ class SlidingWindowMaximum {
     non_ascending_maxima_.push_back(value);
   }
 
-  // 删除值, 如果第一个值等于要删除的这个值, 则将这个值删掉
+  // 删除值,如果第一个值等于要删除的这个值,则将这个值删掉
   void RemoveValue(const float value) {
     // DCHECK for performance, since this is done for every value in the
     // precomputation grid.
@@ -63,7 +63,7 @@ class SlidingWindowMaximum {
     }
   }
 
-  // 获取最大值, 因为是按照顺序存储的, 第一个值是最大的
+  // 获取最大值,因为是按照顺序存储的,第一个值是最大的
   float GetMaximum() const {
     // DCHECK for performance, since this is done for every value in the
     // precomputation grid.
@@ -111,21 +111,21 @@ PrecomputationGrid2D::PrecomputationGrid2D(
   CHECK_GE(limits.num_y_cells, 1);
 
   const int stride = wide_limits_.num_x_cells;
+
   // First we compute the maximum probability for each (x0, y) achieved in the
   // span defined by x0 <= x < x0 + width.
   std::vector<float>& intermediate = *reusable_intermediate_grid;
   intermediate.resize(wide_limits_.num_x_cells * limits.num_y_cells);
-  
-  // 对每一行从左到右横着做一次滑窗, 将滑窗后的地图放在intermediate(临时数据)中
+  // 对每一行从左到右横着做一次滑窗,将滑窗后的地图放在intermediate(临时数据)中
   for (int y = 0; y != limits.num_y_cells; ++y) {
     SlidingWindowMaximum current_values;
-    // 获取 grid 的x坐标的索引: 首先获取 (0, y)
+    // 获取grid的x坐标的索引,首先获取(0,y)
     current_values.AddValue(
         1.f - std::abs(grid.GetCorrespondenceCost(Eigen::Array2i(0, y))));
 
-    // Step: 1 滑动窗口在x方向开始划入地图, 所以只进行 填入值
-    // intermediate的索引x + width - 1 + y * stride的范围是 [0, width-2] 再加上 y * stride
-    // grid的索引 x + width 的坐标范围是 [1, width-1]
+    // Step1:滑动窗口在x方向开始划入地图,所以只进行填入值
+    // intermediate的索引x + width - 1 + y * stride的范围是[0, width-2]再加上y * stride
+    // grid的索引x + width的坐标范围是[1, width-1]
     for (int x = -width + 1; x != 0; ++x) {
       intermediate[x + width - 1 + y * stride] = current_values.GetMaximum();
       if (x + width < limits.num_x_cells) {
@@ -134,9 +134,9 @@ PrecomputationGrid2D::PrecomputationGrid2D(
       }
     }
 
-    // Step: 2 滑动窗口已经完全在地图里了, 滑窗进行一入一出的操作
-    // x + width - 1 + y * stride 的范围是 [width-1, limits.num_x_cells-2] 再加上 y * stride
-    // grid的索引 x + width 的坐标范围是 [width, limits.num_x_cells-width-1]
+    // Step2:滑动窗口已经完全在地图里了,滑窗进行一入一出的操作
+    // x + width - 1 + y * stride的范围是[width-1, limits.num_x_cells-2]再加上y * stride
+    // grid的索引x + width的坐标范围是[width, limits.num_x_cells-width-1]
     for (int x = 0; x < limits.num_x_cells - width; ++x) {
       intermediate[x + width - 1 + y * stride] = current_values.GetMaximum();
       current_values.RemoveValue(
@@ -145,24 +145,23 @@ PrecomputationGrid2D::PrecomputationGrid2D(
                                         Eigen::Array2i(x + width, y))));
     }
 
-    // Step: 3 滑动窗口正在划出, 一次减少一个值, 所以intermediate的宽度比grid多 width-1
-    // x + width - 1 + y * stride 的范围是 [limits.num_x_cells-1, limits.num_x_cells+width-1] 再加上 y * stride
-    // grid 的索引 x的范围是 [limits.num_x_cells-width, limits.num_x_cells-1]
+    // Step3:滑动窗口正在划出,一次减少一个值,所以intermediate的宽度比grid多width-1
+    // x + width - 1 + y * stride的范围是[limits.num_x_cells-1, limits.num_x_cells+width-1]再加上y * stride
+    // grid的索引x的范围是[limits.num_x_cells-width, limits.num_x_cells-1]
     for (int x = std::max(limits.num_x_cells - width, 0);
          x != limits.num_x_cells; ++x) {
       intermediate[x + width - 1 + y * stride] = current_values.GetMaximum();
       current_values.RemoveValue(
           1.f - std::abs(grid.GetCorrespondenceCost(Eigen::Array2i(x, y))));
     }
-    // 理论上, 滑窗走完地图的一行之后应该是空的, 经过 只入, 一出一入, 只出, 3个步骤
+    // 理论上,滑窗走完地图的一行之后应该是空的,经过只入,一出一入,只出,一共3个步骤
     current_values.CheckIsEmpty();
   }
 
   // For each (x, y), we compute the maximum probability in the width x width
   // region starting at each (x, y) and precompute the resulting bound on the
   // score.
-
-  // 根据intermediate的值, 对每一列从下到上竖着再做一次滑窗, 这个才是真正的地图cells_
+  // 根据intermediate的值,对每一列从下到上竖着再做一次滑窗,这个才是真正的地图cells_
   for (int x = 0; x != wide_limits_.num_x_cells; ++x) {
     SlidingWindowMaximum current_values;
 
@@ -295,10 +294,11 @@ bool FastCorrelativeScanMatcher2D::Match(
     const transform::Rigid2d& initial_pose_estimate,
     const sensor::PointCloud& point_cloud, const float min_score, float* score,
     transform::Rigid2d* pose_estimate) const {
-  // param: linear_search_window angular_search_window 
+  // 构建搜索参数
   const SearchParameters search_parameters(options_.linear_search_window(),
                                            options_.angular_search_window(),
                                            point_cloud, limits_.resolution());
+  // 调用MatchWithSearchParameters
   return MatchWithSearchParameters(search_parameters, initial_pose_estimate,
                                    point_cloud, min_score, score,
                                    pose_estimate);
@@ -341,7 +341,7 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   CHECK(score != nullptr);
   CHECK(pose_estimate != nullptr);
 
-  // 将原点处的点云先旋转到预测的方向上
+  // 根据初始估计位姿,对点云进行旋转
   const Eigen::Rotation2Dd initial_rotation = initial_pose_estimate.rotation();
   const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud(
       point_cloud,
@@ -362,7 +362,7 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   // 缩小搜索窗口的大小,计算每一帧点云在保证最后一个点能在地图范围内时的最大移动范围
   search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits());
 
-  // 计算最低分辨率中的所有的候选解,最低分辨率是通过搜索树的层数、地图的分辨率计算出来的
+  // 计算最低分辨率中的所有候选解,最低分辨率是通过搜索树的层数、地图的分辨率计算出来的
   // 对于地图坐标系来说,最低分辨率=1<<h,h表示搜索树的总的层数
   // 这里不但对最低分辨率的所有候选解的得分进行了计算,同时还按照从大到小排列
   const std::vector<Candidate2D> lowest_resolution_candidates =
@@ -371,7 +371,7 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   // 进行基于分支定界算法的搜索,获取最优解
   const Candidate2D best_candidate = BranchAndBound(
       discrete_scans, search_parameters, lowest_resolution_candidates,
-      precomputation_grid_stack_->max_depth(), min_score); // param: max_depth
+      precomputation_grid_stack_->max_depth(), min_score);
   
   // 检查最优解的值,如果大于指定阈值min_score就认为匹配成功,否则认为不匹配返回失败
   if (best_candidate.score > min_score) {
@@ -386,17 +386,16 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   return false;
 }
 
-// 生成最低分辨率层(栅格最粗)上的所有候选解, 并进行打分与排序
+// 生成最低分辨率层(栅格最粗)上的所有候选解,并进行打分与排序
 std::vector<Candidate2D>
 FastCorrelativeScanMatcher2D::ComputeLowestResolutionCandidates(
     const std::vector<DiscreteScan2D>& discrete_scans,
     const SearchParameters& search_parameters) const {
-
   // 生成最低分辨率层(栅格最粗)上的所有候选解
   std::vector<Candidate2D> lowest_resolution_candidates =
       GenerateLowestResolutionCandidates(search_parameters);
 
-  // 计算每个候选解的得分, 按照匹配得分从大到小排序, 返回排列好的candidates 
+  // 计算每个候选解的得分,按照匹配得分从大到小排序,返回排列好的candidates 
   ScoreCandidates(
       precomputation_grid_stack_->Get(precomputation_grid_stack_->max_depth()),
       discrete_scans, search_parameters, &lowest_resolution_candidates);
@@ -412,7 +411,6 @@ FastCorrelativeScanMatcher2D::GenerateLowestResolutionCandidates(
   // 遍历旋转后的每个点云
   for (int scan_index = 0; scan_index != search_parameters.num_scans;
        ++scan_index) {
-
     // X方向候选解的个数
     const int num_lowest_resolution_linear_x_candidates =
         (search_parameters.linear_bounds[scan_index].max_x -
@@ -425,12 +423,12 @@ FastCorrelativeScanMatcher2D::GenerateLowestResolutionCandidates(
          search_parameters.linear_bounds[scan_index].min_y + linear_step_size) /
         linear_step_size;
 
-    // num_candidates 为最低分辨率这一层中所有候选解的总个数
+    // num_candidates为最低分辨率这一层中所有候选解的总个数
     num_candidates += num_lowest_resolution_linear_x_candidates *
                       num_lowest_resolution_linear_y_candidates;
   }
 
-  // 将所有候选解保存起来, 候选解的结构为（角度的索引, x偏移量, y偏移量, 搜索参数）
+  // 将所有候选解保存起来,候选解的结构为:角度的索引,x偏移量,y偏移量,搜索参数
   std::vector<Candidate2D> candidates;
   candidates.reserve(num_candidates);
 
@@ -487,10 +485,10 @@ void FastCorrelativeScanMatcher2D::ScoreCandidates(
 /**
  * @brief 基于多分辨率地图的分支定界搜索算法
  * 
- * @param[in] discrete_scans 多个点云的每个点在地图上的栅格坐标
+ * @param[in] discrete_scans 离散化的按各角度旋转的点云集合
  * @param[in] search_parameters 搜索配置参数
  * @param[in] candidates 候选解
- * @param[in] candidate_depth 搜索树高度
+ * @param[in] candidate_depth 搜索树深度
  * @param[in] min_score 候选点最小得分
  * @return Candidate2D 最优解
  */
@@ -500,11 +498,11 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
     const std::vector<Candidate2D>& candidates, const int candidate_depth,
     float min_score) const {
   // 这个函数是以递归调用的方式求解的
-  // 首先给出了递归终止的条件, 就是如果到了第0层(到底了), 意味着我们搜索到了一个叶子节点.
-  // 同时由于每次迭代过程我们都是对新扩展的候选点进行降序排列
-  // 所以队首的这个叶子节点就是最优解, 直接返回即可
+  // 首先给出了递归终止的条件,就是如果到了第0层(到底了),意味着搜索到了一个叶子节点
+  // 同时由于每次迭代过程都是对新扩展的候选点进行降序排列
+  // 所以队首的这个叶子节点就是最优解,直接返回即可
   if (candidate_depth == 0) {
-    // Return the best candidate.
+    // Return the best candidate
     return *candidates.begin();
   }
 
@@ -514,7 +512,7 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
 
   // 遍历所有的候选点
   for (const Candidate2D& candidate : candidates) {
-    //  Step1:剪枝,低于设置的阈值 或者 低于上一层的可行解的最高分 的可行解不进行继续分枝
+    // Step1:剪枝,低于设置的阈值或者低于上一层的可行解的最高分的可行解不进行继续分枝
     // 如果遇到一个候选点的分低于阈值,那么后边的候选解的得分也会低于阈值,就可以直接跳出循环了
     if (candidate.score <= min_score) {
       break;
@@ -525,7 +523,7 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
     // 搜索步长减为上层的一半
     const int half_width = 1 << (candidate_depth - 1);
 
-    // Step2:分枝,对x、y偏移进行遍历,求出candidate的四个子节点候选解
+    // Step2:分枝,对xy偏移进行遍历,求出candidate的四个子节点候选解
     for (int x_offset : {0, half_width}) { // 只能取0和half_width
       // 如果x超过了界限,就跳过
       if (candidate.x_index_offset + x_offset >
@@ -553,7 +551,7 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
 
     // 递归调用BranchAndBound对新生成的higher_resolution_candidates进行搜索 
     // 先对其分数最高的节点继续进行分支,直到最底层,然后再返回倒数第二层再进行迭代
-    // 如果倒数第二层的最高分没有上一个的最底层(叶子层)的分数高,则跳过, 
+    // 如果倒数第二层的最高分没有上一个的最底层(叶子层)的分数高,则跳过,
     // 否则继续向下进行分支与评分
  
     // Step3:定界,best_high_resolution_candidate.score

@@ -70,10 +70,15 @@ class LocalTrajectoryBuilder2D {
   // for 2D SLAM. `TimedPointCloudData::time` is when the last point in
   // `range_data` was acquired, `TimedPointCloudData::ranges` contains the
   // relative time of point with respect to `TimedPointCloudData::time`.
+  // 添加激光扫描数据
   std::unique_ptr<MatchingResult> AddRangeData(
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& range_data);
+
+  // 添加IMU数据
   void AddImuData(const sensor::ImuData& imu_data);
+
+  // 添加里程计数据
   void AddOdometryData(const sensor::OdometryData& odometry_data);
 
   static void RegisterMetrics(metrics::FamilyFactory* family_factory);

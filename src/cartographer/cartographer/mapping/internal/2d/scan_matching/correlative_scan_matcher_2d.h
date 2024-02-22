@@ -32,15 +32,18 @@ namespace scan_matching {
 typedef std::vector<Eigen::Array2i> DiscreteScan2D;
 
 // Describes the search space.
+// 搜索参数
 struct SearchParameters {
   // Linear search window in pixel offsets; bounds are inclusive.
+  // 线性搜索的边界
   struct LinearBounds {
     int min_x;
     int max_x;
     int min_y;
     int max_y;
   };
-
+  
+  // 构造函数,初始化搜索参数
   SearchParameters(double linear_search_window, double angular_search_window,
                    const sensor::PointCloud& point_cloud, double resolution);
 
@@ -55,7 +58,7 @@ struct SearchParameters {
   int num_angular_perturbations;            // 个数
   double angular_perturbation_step_size;    // 角度分辨率
   double resolution;
-  int num_scans;                            // 旋转后的点云集合的个数
+  int num_scans;                            // 旋转后点云的个数
   std::vector<LinearBounds> linear_bounds;  // Per rotated scans.
 };
 

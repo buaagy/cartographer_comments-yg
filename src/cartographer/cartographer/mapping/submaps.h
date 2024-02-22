@@ -34,7 +34,7 @@ namespace cartographer {
 namespace mapping {
 
 // Converts the given probability to log odds.
-// 对论文里的 odds(p)函数 又取了 log
+// 对论文里的odds(p)函数又取了log
 inline float Logit(float probability) {
   return std::log(probability / (1.f - probability));
 }
@@ -44,6 +44,7 @@ const float kMinLogOdds = Logit(kMinProbability);
 
 // Converts a probability to a log odds integer. 0 means unknown, [kMinLogOdds,
 // kMaxLogOdds] is mapped to [1, 255].
+// 将概率值转到[1,255]范围内
 inline uint8 ProbabilityToLogOddsInteger(const float probability) {
   const int value = common::RoundToInt((Logit(probability) - kMinLogOdds) *
                                        254.f / (kMaxLogOdds - kMinLogOdds)) +
@@ -68,7 +69,7 @@ inline uint8 ProbabilityToLogOddsInteger(const float probability) {
 class Submap {
  public:
 
-  // 构造函数, 将传入的local_submap_pose作为子图的坐标原点
+  // 构造函数,将传入的local_submap_pose作为子图的局部位姿
   Submap(const transform::Rigid3d& local_submap_pose)
       : local_pose_(local_submap_pose) {}
   virtual ~Submap() {}
@@ -82,26 +83,30 @@ class Submap {
       proto::SubmapQuery::Response* response) const = 0;
 
   // Pose of this submap in the local map frame.
-  // 在local坐标系的子图的坐标
+  // 在local坐标系的子图位姿
   transform::Rigid3d local_pose() const { return local_pose_; }
 
   // Number of RangeData inserted.
-  // 插入到子图中雷达数据的个数
+  // 返回插入到子图中雷达数据的个数
   int num_range_data() const { return num_range_data_; }
+
+  // 设置插入到子图中雷达数据的个数
   void set_num_range_data(const int num_range_data) {
     num_range_data_ = num_range_data;
   }
 
+  // 返回是否插入完成
   bool insertion_finished() const { return insertion_finished_; }
-  // 将子图标记为完成状态
+  
+  // 将子图标记为插入完成状态
   void set_insertion_finished(bool insertion_finished) {
     insertion_finished_ = insertion_finished;
   }
 
  private:
-  const transform::Rigid3d local_pose_; // 子图原点在local坐标系下的坐标
-  int num_range_data_ = 0;
-  bool insertion_finished_ = false;
+  const transform::Rigid3d local_pose_; // 子图在local坐标系下的位姿
+  int num_range_data_ = 0; // 数据量
+  bool insertion_finished_ = false; // 是否插入完成
 };
 
 }  // namespace mapping

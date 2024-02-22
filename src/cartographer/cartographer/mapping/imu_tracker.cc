@@ -48,15 +48,16 @@ ImuTracker::ImuTracker(const double imu_gravity_time_constant,
  * @param[in] time 要预测的时刻
  */
 void ImuTracker::Advance(const common::Time time) {
+  // 要预测的时刻time需要大于等于之前的时刻time_
   CHECK_LE(time_, time);
+  // 计算时间差
   const double delta_t = common::ToSeconds(time - time_);
   // 上一时刻的角速度乘以时间,得到当前时刻相对于上一时刻的预测的姿态变化量,再转换成四元数
   const Eigen::Quaterniond rotation =
       transform::AngleAxisVectorToRotationQuaternion(
           Eigen::Vector3d(imu_angular_velocity_ * delta_t));
-  // 使用上一时刻的姿态 orientation_ 乘以姿态变化量, 得到当前时刻的预测出的姿态
+  // 使用上一时刻的姿态orientation_乘以姿态变化量,得到当前时刻的预测出的姿态
   orientation_ = (orientation_ * rotation).normalized();
-
   // 根据预测出的姿态变化量,预测旋转后的线性加速度的值
   gravity_vector_ = rotation.conjugate() * gravity_vector_;
   // 更新时间
@@ -101,8 +102,8 @@ void ImuTracker::AddImuLinearAccelerationObservation(
   // Step: 5 使用这个旋转量来校准当前的姿态
   orientation_ = (orientation_ * rotation).normalized();
 
-  // note: glog CHECK_GT: 第一个参数要大于第二个参数
-  // 如果线性加速度与姿态均计算完全正确,那这二者的乘积应该是 0 0 1
+  // glog CHECK_GT:第一个参数要大于第二个参数
+  // 如果线性加速度与姿态均计算完全正确,那这二者的乘积应该是0 0 1
   CHECK_GT((orientation_ * gravity_vector_).z(), 0.);
   CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }

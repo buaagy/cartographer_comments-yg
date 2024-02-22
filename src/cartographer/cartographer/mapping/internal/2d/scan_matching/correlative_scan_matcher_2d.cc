@@ -34,13 +34,13 @@ SearchParameters::SearchParameters(const double linear_search_window,
   // the std::acos() below is defined.
   float max_scan_range = 3.f * resolution;
 
-  // 求得 point_cloud 中雷达数据的 最大的值（最远点的距离）
+  // 求得point_cloud中雷达数据的最大的值(最远点的距离)
   for (const sensor::RangefinderPoint& point : point_cloud) {
     const float range = point.position.head<2>().norm();
     max_scan_range = std::max(range, max_scan_range);
   }
 
-  // 根据论文里的公式 求得角度分辨率 angular_perturbation_step_size
+  // 根据论文里的公式(7)求得角度分辨率angular_perturbation_step_size
   const double kSafetyMargin = 1. - 1e-3;
   angular_perturbation_step_size =
       kSafetyMargin * std::acos(1. - common::Pow2(resolution) /
@@ -49,14 +49,14 @@ SearchParameters::SearchParameters(const double linear_search_window,
   // 范围除以分辨率得到个数
   num_angular_perturbations =
       std::ceil(angular_search_window / angular_perturbation_step_size);
-  // num_scans是要生成旋转点云的个数, 将 num_angular_perturbations 扩大了2倍
+  // num_scans是要生成旋转点云的个数,将num_angular_perturbations扩大了2倍
   num_scans = 2 * num_angular_perturbations + 1;
 
-  // XY方向的搜索范围, 单位是多少个栅格
+  // XY方向的搜索栅格数
   const int num_linear_perturbations =
       std::ceil(linear_search_window / resolution);
 
-  // linear_bounds 的作用是确定每一个点云的最大最小边界
+  // linear_bounds的作用是确定每一个点云的最大最小边界
   linear_bounds.reserve(num_scans);
   for (int i = 0; i != num_scans; ++i) {
     linear_bounds.push_back(
@@ -147,43 +147,45 @@ std::vector<sensor::PointCloud> GenerateRotatedScans(
     const sensor::PointCloud& point_cloud,
     const SearchParameters& search_parameters) {
   std::vector<sensor::PointCloud> rotated_scans;
-  // 生成 num_scans 个旋转后的点云
+  // 生成num_scans个旋转后的点云
   rotated_scans.reserve(search_parameters.num_scans);
   // 起始角度
   double delta_theta = -search_parameters.num_angular_perturbations *
                        search_parameters.angular_perturbation_step_size;
-  // 进行遍历，生成旋转不同角度后的点云集合
+  // 进行遍历,生成旋转不同角度后的点云集合
   for (int scan_index = 0; scan_index < search_parameters.num_scans;
        ++scan_index,
            delta_theta += search_parameters.angular_perturbation_step_size) {
-    // 将 point_cloud 绕Z轴旋转了delta_theta
+    // 将point_cloud绕Z轴旋转delta_theta
     rotated_scans.push_back(sensor::TransformPointCloud(
         point_cloud, transform::Rigid3f::Rotation(Eigen::AngleAxisf(
                          delta_theta, Eigen::Vector3f::UnitZ()))));
   }
+  // 返回点云集合
   return rotated_scans;
 }
 
-// 将旋转后的点云集合按照预测出的平移量进行平移, 获取平移后的点在地图中的索引
+// 将旋转后的点云集合按照预测出的平移量进行平移,并获取平移后的点在地图中的索引
 std::vector<DiscreteScan2D> DiscretizeScans(
     const MapLimits& map_limits, const std::vector<sensor::PointCloud>& scans,
     const Eigen::Translation2f& initial_translation) {
-  // discrete_scans的size 为 旋转的点云的个数
+  // discrete_scans的size为旋转后点云的个数
   std::vector<DiscreteScan2D> discrete_scans;
   discrete_scans.reserve(scans.size());
-
+  
+  // 遍历每个旋转后的点云
   for (const sensor::PointCloud& scan : scans) {
-    // discrete_scans中的每一个 DiscreteScan2D 的size设置为这一帧点云中所有点的个数
+    // discrete_scans中的每一个DiscreteScan2D的size设置为这一帧点云的点数
     discrete_scans.emplace_back();
     discrete_scans.back().reserve(scan.size());
 
-    // 点云中的每一个点进行平移, 获取平移后的栅格索引
+    // 遍历点云中每个点,对每个点进行平移,并获取平移后的栅格索引
     for (const sensor::RangefinderPoint& point : scan) {
-      // 对scan中的每个点进行平移
+      // 对点进行平移
       const Eigen::Vector2f translated_point =
           Eigen::Affine2f(initial_translation) * point.position.head<2>();
 
-      // 将旋转后的点 对应的栅格的索引放入discrete_scans
+      // 将平移后的点对应的栅格的索引放入discrete_scans
       discrete_scans.back().push_back(
           map_limits.GetCellIndex(translated_point));
     }

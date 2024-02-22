@@ -32,8 +32,8 @@ namespace mapping {
 
 /**
  * @brief 
- * ImuTracker 的主要作用是根据 IMU的角速度来预测姿态,
- * 并根据IMU的线加速度来确定重力的方向, 并使用重力的方向来对姿态进行校准
+ * ImuTracker的主要作用是根据IMU的角速度来预测姿态,
+ * 并根据IMU的线加速度来确定重力的方向,并使用重力的方向来对姿态进行校准
  */
 class ImuTracker {
  public:
