@@ -216,18 +216,17 @@ NodeId PoseGraph2D::AppendNode(
 }
 
 /**
- * @brief 增加节点, 并计算跟这个节点相关的约束
+ * @brief 增加节点,并计算与这个节点相关的约束
  * 
  * @param[in] constant_data 节点信息
  * @param[in] trajectory_id 轨迹id
- * @param[in] insertion_submaps 子地图 active_submaps
+ * @param[in] insertion_submaps 子地图active_submaps
  * @return NodeId 返回节点的ID
  */
 NodeId PoseGraph2D::AddNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
-  
   // 将节点在local坐标系下的坐标转成global坐标系下的坐标
   const transform::Rigid3d optimized_pose(
       GetLocalToGlobalTransform(trajectory_id) * constant_data->local_pose);

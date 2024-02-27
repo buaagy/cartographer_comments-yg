@@ -115,6 +115,7 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
                             filtered_gravity_aligned_point_cloud,
                             *matching_submap->grid(), pose_observation.get(),
                             &summary);
+                            
   // 如果观测到位姿有效,则加入观测量
   if (pose_observation) {
     // 最终残差
@@ -130,7 +131,7 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
                  pose_prediction.rotation().angle());
     kScanMatcherResidualAngleMetric->Observe(residual_angle);
   }
-  // 返回ceres扫描批评后的位姿
+  // 返回ceres扫描匹配后的位姿
   return pose_observation;
 }
 
@@ -305,7 +306,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   }
 
   // Computes a gravity aligned pose prediction.
-  // 进行位姿的预测,得到先验位姿
+  // 使用位姿外推器进行位姿的预测,得到先验位姿
   const transform::Rigid3d non_gravity_aligned_pose_prediction =
       extrapolator_->ExtrapolatePose(time);
   // 先进行重力矫正,将三维位姿先旋转到姿态为0;再取xy坐标将三维位姿转成二维位姿
@@ -391,11 +392,11 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
     const transform::Rigid3d& pose_estimate,
     const Eigen::Quaterniond& gravity_alignment) {
-  // 如果移动距离过小,或者时间过短,则不进行地图的更新
+  // 如果移动距离或角度过小,或者时间过短,则不进行地图的更新
   if (motion_filter_.IsSimilar(time, pose_estimate)) {
     return nullptr;
   }
-  // 将点云数据写入到submap中
+  // 将点云数据插入到submap中
   std::vector<std::shared_ptr<const Submap2D>> insertion_submaps =
       active_submaps_.InsertRangeData(range_data_in_local);
 
@@ -404,7 +405,7 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
       std::make_shared<const TrajectoryNode::Data>(TrajectoryNode::Data{
           time,
           gravity_alignment,
-          filtered_gravity_aligned_point_cloud,  // 这里存的是体素滤波后的点云, 不是校准后的点云
+          filtered_gravity_aligned_point_cloud,  // 这里存的是体素滤波后的点云,不是校准后的点云
           {},  // 'high_resolution_point_cloud' is only used in 3D.
           {},  // 'low_resolution_point_cloud' is only used in 3D.
           {},  // 'rotational_scan_matcher_histogram' is only used in 3D.

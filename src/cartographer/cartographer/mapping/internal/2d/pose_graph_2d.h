@@ -77,9 +77,9 @@ class PoseGraph2D : public PoseGraph {
   // node data was inserted into the 'insertion_submaps'. If
   // 'insertion_submaps.front().finished()' is 'true', data was inserted into
   // this submap for the last time.
-  // 添加一个带有“constant_data”的新节点. 它的“constant_data->local_pose”是
-  // 通过对“insertion_submaps.front()”的扫描匹配来确定的, 并且节点数据被插入到“insertion_submaps”中. 
-  // 如果 'insertion_submaps.front().finished()' 为 'true', 则数据最后一次插入到该子图中.
+  // 添加一个带有constant_data的新节点,它的constant_data->local_pose是
+  // 通过对insertion_submaps.front()的扫描匹配来确定的,并且节点数据被插入到insertion_submaps中 
+  // 如果insertion_submaps.front().finished()为true,则数据最后一次插入到该子图中
 
   NodeId AddNode(
       std::shared_ptr<const TrajectoryNode::Data> constant_data,

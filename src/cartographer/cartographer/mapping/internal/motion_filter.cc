@@ -22,6 +22,7 @@
 namespace cartographer {
 namespace mapping {
 
+// 创建运动滤波的配置参数
 proto::MotionFilterOptions CreateMotionFilterOptions(
     common::LuaParameterDictionary* const parameter_dictionary) {
   proto::MotionFilterOptions options;
@@ -38,8 +39,8 @@ MotionFilter::MotionFilter(const proto::MotionFilterOptions& options)
     : options_(options) {}
 
 /**
- * @brief 将当前时间与当前位姿 与 上一次保存的时间与位姿进行比对, 
- * 时间,移动距离,角度 变换量大于阈值 时返回true
+ * @brief 将当前时间与位姿与上一次保存的时间与位姿进行比对,
+ * 当时间,移动距离和角度大于阈值时返回true,否则返回false
  * 
  * @param[in] time 当前的时间
  * @param[in] pose 当前的位姿
@@ -48,6 +49,7 @@ MotionFilter::MotionFilter(const proto::MotionFilterOptions& options)
  */
 bool MotionFilter::IsSimilar(const common::Time time,
                              const transform::Rigid3d& pose) {
+  // 打印节点比例的信息
   LOG_IF_EVERY_N(INFO, num_total_ >= 500, 500)
       << "Motion filter reduced the number of nodes to "
       << 100. * num_different_ / num_total_ << "%.";
@@ -60,7 +62,7 @@ bool MotionFilter::IsSimilar(const common::Time time,
           options_.max_angle_radians()) {
     return true;
   }
-  // 只有时间,移动距离,角度 变换量大于阈值 才进行 last_pose_ 的更新
+  // 只有时间,移动距离和角度大于阈值才进行last_time_和last_pose_的更新
   last_time_ = time;
   last_pose_ = pose;
   ++num_different_;

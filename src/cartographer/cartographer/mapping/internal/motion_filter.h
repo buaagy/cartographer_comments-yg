@@ -42,10 +42,10 @@ class MotionFilter {
 
  private:
   const proto::MotionFilterOptions options_;
-  int num_total_ = 0;
-  int num_different_ = 0;
-  common::Time last_time_;
-  transform::Rigid3d last_pose_;
+  int num_total_ = 0; // 位姿总数
+  int num_different_ = 0; // 不同位姿的个数
+  common::Time last_time_; // 上一个的时间
+  transform::Rigid3d last_pose_; // 上一个的位姿
 };
 
 }  // namespace mapping
