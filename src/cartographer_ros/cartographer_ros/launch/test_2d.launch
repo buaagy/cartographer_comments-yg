@@ -1,0 +1,34 @@
+<launch>
+  <param name="/use_sim_time" value="false" />
+
+  <param name="robot_description"
+      textfile="$(find cartographer_ros)/urdf/online_test_2d.urdf" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+      type="robot_state_publisher" />
+
+  <!-- 启动cartographer_ros节点(纯定位) -->
+  <!-- <node name="cartographer_node" pkg="cartographer_ros"
+      type="cartographer_node" args="
+          -configuration_directory $(find cartographer_ros)/configuration_files
+          -configuration_basename cartographer.lua
+          -load_state_filename map.pbstream"
+      output="screen">
+    <remap from="scan" to="front_scan" />
+  </node> -->
+
+  <!-- 启动cartographer_ros节点(定位+建图) -->
+  <node name="cartographer_node" pkg="cartographer_ros"
+      type="cartographer_node" args="
+          -configuration_directory $(find cartographer_ros)/configuration_files
+          -configuration_basename cartographer.lua"
+      output="screen">
+    <remap from="scan" to="LiDAR/STL06P" />
+  </node>
+  
+  <!-- 启动占据栅格地图节点,分辨率=0.05米 -->
+  <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+      type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
+
+  <node name="rviz" pkg="rviz" type="rviz" required="true" 
+      args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
+</launch>

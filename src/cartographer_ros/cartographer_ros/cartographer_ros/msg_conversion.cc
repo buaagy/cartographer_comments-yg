@@ -139,8 +139,8 @@ float GetFirstEcho(const sensor_msgs::LaserEcho& echo) {
   return echo.echoes[0];
 }
 
-// For sensor_msgs::LaserScan and sensor_msgs::MultiEchoLaserScan.
-// 将LaserScan与MultiEchoLaserScan转成carto格式的点云数据
+// 对于sensor_msgs::LaserScan和sensor_msgs::MultiEchoLaserScan
+// 将LaserScan与MultiEchoLaserScan转成carto格式的点云数据和时间
 template <typename LaserMessageType>
 std::tuple<PointCloudWithIntensities, ::cartographer::common::Time>
 LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
@@ -154,13 +154,14 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
 
   PointCloudWithIntensities point_cloud;
   float angle = msg.angle_min;
+  // 遍历点云中的每个点
   for (size_t i = 0; i < msg.ranges.size(); ++i) {
-    // c++11: 使用auto可以适应不同的数据类型
     const auto& echoes = msg.ranges[i];
+    // 如果数据不为空
     if (HasEcho(echoes)) {
-
+      // 获取第一个echo值
       const float first_echo = GetFirstEcho(echoes);
-      // 满足范围才进行使用
+      // 满足范围要求才进行使用
       if (msg.range_min <= first_echo && first_echo <= msg.range_max) {
         const Eigen::AngleAxisf rotation(angle, Eigen::Vector3f::UnitZ());
         const cartographer::sensor::TimedRangefinderPoint point{
@@ -169,10 +170,9 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
         // 保存点云坐标与时间信息
         point_cloud.points.push_back(point);
         
-        // 如果存在强度信息
+        // 保存强度信息
         if (msg.intensities.size() > 0) {
           CHECK_EQ(msg.intensities.size(), msg.ranges.size());
-          // 使用auto可以适应不同的数据类型
           const auto& echo_intensities = msg.intensities[i];
           CHECK(HasEcho(echo_intensities));
           point_cloud.intensities.push_back(GetFirstEcho(echo_intensities));
@@ -184,17 +184,20 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
     angle += msg.angle_increment;
   }
 
+  // 计算时间
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
-    const double duration = point_cloud.points.back().time;
     // 以点云最后一个点的时间为点云的时间戳
+    const double duration = point_cloud.points.back().time;
     timestamp += cartographer::common::FromSeconds(duration);
 
-    // 让点云的时间变成相对值, 最后一个点的时间为0
+    // 让点云的时间变成相对值,最后一个点的时间为0
     for (auto& point : point_cloud.points) {
       point.time -= duration;
     }
   }
+
+  // 返回解析出的点云和时间
   return std::make_tuple(point_cloud, timestamp);
 }
 

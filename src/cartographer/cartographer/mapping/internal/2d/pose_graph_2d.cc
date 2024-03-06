@@ -1094,27 +1094,27 @@ void PoseGraph2D::RunOptimization() {
   // data_.constraints, data_.frozen_trajectories and data_.landmark_nodes
   // when executing the Solve. Solve is time consuming, so not taking the mutex
   // before Solve to avoid blocking foreground processing.
-  // Solve 比较耗时, 所以在执行 Solve 之前不要加互斥锁, 以免阻塞其他的任务处理
+  // Solve比较耗时,且实际上涉及的对象不会被其他线程访问,
+  // 所以在执行Solve之前不要加互斥锁,以免阻塞其他的任务处理
   // landmark直接参与优化问题
   optimization_problem_->Solve(data_.constraints, GetTrajectoryStates(),
                                data_.landmark_nodes);
 
   absl::MutexLock locker(&mutex_);
 
-  // 获取优化后的结果
-  // submap_data的类型是 MapById<SubmapId, optimization::SubmapSpec2D> 
+  // 获取优化后的submap结果
+  // submap_data的类型是MapById<SubmapId, optimization::SubmapSpec2D> 
   const auto& submap_data = optimization_problem_->submap_data();
-
-  // node_data的类型是 MapById<NodeId, NodeSpec2D>
-  // node_data是优化后的所有节点的新位姿
+  
+  // 获取优化后的所有节点的新位姿node_data
+  // node_data的类型是MapById<NodeId, NodeSpec2D>
   const auto& node_data = optimization_problem_->node_data();
 
   // 更新轨迹内的节点位置
   for (const int trajectory_id : node_data.trajectory_ids()) {
-
-    // Step: 根据优化后的结果对data_.trajectory_nodes的global_pose进行更新
+    // 根据优化后的结果对data_.trajectory_nodes的global_pose进行更新
     for (const auto& node : node_data.trajectory(trajectory_id)) {
-      // node 是 IdDataReference 类型
+      // node是IdDataReference类型
       // mutable_trajectory_node是TrajectoryNode类型
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node.id);
       // 将优化后的二维节点位姿旋转到机器人的姿态上得到global_pose
@@ -1126,12 +1126,12 @@ void PoseGraph2D::RunOptimization() {
 
     // Extrapolate all point cloud poses that were not included in the
     // 'optimization_problem_' yet.
-    // 推断尚未包含在“optimization_problem_”中的所有点云姿势
+    // 推断尚未包含在optimization_problem_中的所有点云位姿
 
-    // 根据submap_data最后一个被优化的位姿, 计算global坐标系指向local坐标系的坐标变换
+    // 根据submap_data最后一个被优化的位姿,计算global坐标系指向local坐标系的坐标变换
     const auto local_to_new_global =
         ComputeLocalToGlobalTransform(submap_data, trajectory_id);
-    // 优化前的 global坐标系指向local坐标系的坐标变换
+    // 优化前的global坐标系指向local坐标系的坐标变换
     const auto local_to_old_global = ComputeLocalToGlobalTransform(
         data_.global_submap_poses_2d, trajectory_id);
     // 优化产生的改变量
@@ -1144,14 +1144,13 @@ void PoseGraph2D::RunOptimization() {
     auto node_it =
         std::next(data_.trajectory_nodes.find(last_optimized_node_id));
 
-    // Step: 根据之前的位姿改变量, 对没有优化过的位姿进行校正
+    // 根据之前的位姿改变量,对没有优化过的位姿进行校正
     for (; node_it != data_.trajectory_nodes.EndOfTrajectory(trajectory_id);
          ++node_it) {
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node_it->id);
       mutable_trajectory_node.global_pose =
           old_global_to_new_global * mutable_trajectory_node.global_pose;
     }
-
   } // end for trajectory_id
 
   // 更新data_.landmark_nodes

@@ -5,16 +5,15 @@ options = {
   map_builder = MAP_BUILDER,
   trajectory_builder = TRAJECTORY_BUILDER,
   map_frame = "map",
-  -- 跟踪和发布的frameID都改成激光雷达的frameID
-  tracking_frame = "footprint",
-  published_frame = "footprint",
+  tracking_frame = "base_link",
+  published_frame = "base_link",
   odom_frame = "odom",
   -- true改为false,不用提供里程计数据
   provide_odom_frame = false,
   -- false改为true,仅发布2D位姿
   publish_frame_projected_to_2d = true,
   -- 是否使用位姿外推器
-  use_pose_extrapolator = true,
+  use_pose_extrapolator = false,
   -- 是否使用里程计数据
   use_odometry = false,
   use_nav_sat = false,
@@ -24,7 +23,7 @@ options = {
   num_laser_scans = 1,
   -- 1改为0,不使用多波雷达
   num_multi_echo_laser_scans = 0,
-  -- 10改为1,1/1=1等于不分割
+  -- 10改为1,1/1=1等于不对点云数据进行分割处理
   num_subdivisions_per_laser_scan = 1,
   num_point_clouds = 0,
   lookup_transform_timeout_sec = 0.2,
@@ -40,6 +39,7 @@ options = {
 -- 是否启动2D SLAM
 MAP_BUILDER.use_trajectory_builder_2d = true
 
+TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 1
 -- TRAJECTORY_BUILDER.pure_localization_trimmer = {
 --   max_submaps_to_keep = 3,
 -- }
@@ -65,5 +65,5 @@ POSE_GRAPH.constraint_builder.min_score = 0.65
 POSE_GRAPH.constraint_builder.global_localization_min_score = 0.7
 POSE_GRAPH.optimization_problem.huber_scale = 1e2
 -- 默认值为50,设置为0可关闭全局SLAM
-POSE_GRAPH.optimize_every_n_nodes = 50
+POSE_GRAPH.optimize_every_n_nodes = 0
 return options

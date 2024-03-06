@@ -185,12 +185,14 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id,
   }
 }
 
-// 处理LaserScan数据, 先转成点云,再传入trajectory_builder_
+// 处理LaserScan数据,先转成点云,再传入trajectory_builder_
 void SensorBridge::HandleLaserScanMessage(
     const std::string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg) {
+  // 解析出点云和时间
   carto::sensor::PointCloudWithIntensities point_cloud;
   carto::common::Time time;
   std::tie(point_cloud, time) = ToPointCloudWithIntensities(*msg);
+  // 调用HandleLaserScan
   HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
@@ -216,7 +218,7 @@ void SensorBridge::HandlePointCloud2Message(
 
 const TfBridge& SensorBridge::tf_bridge() const { return tf_bridge_; }
 
-// 根据参数配置,将一帧雷达数据分成几段, 再传入trajectory_builder_
+// 根据参数配置,将一帧雷达数据分成几段,再传入trajectory_builder_
 void SensorBridge::HandleLaserScan(
     const std::string& sensor_id, const carto::common::Time time,
     const std::string& frame_id,
@@ -224,12 +226,13 @@ void SensorBridge::HandleLaserScan(
   if (points.points.empty()) {
     return;
   }
-  // CHECK_LE: 小于等于
+  // 最后时间应该小于等于0
   CHECK_LE(points.points.back().time, 0.f);
   // TODO(gaschler): Use per-point time instead of subdivisions.
 
-  // 意为一帧雷达数据被分成几次处理, 一般将这个参数设置为1
+  // 意为一帧雷达数据被分成几次处理,一般将这个参数设置为1
   for (int i = 0; i != num_subdivisions_per_laser_scan_; ++i) {
+    // 计算起始和结束点的index
     const size_t start_index =
         points.points.size() * i / num_subdivisions_per_laser_scan_;
     const size_t end_index =
@@ -241,15 +244,16 @@ void SensorBridge::HandleLaserScan(
     if (start_index == end_index) {
       continue;
     }
+    
     const double time_to_subdivision_end = subdivision.back().time;
     // `subdivision_time` is the end of the measurement so sensor::Collator will
     // send all other sensor data first.
     const carto::common::Time subdivision_time =
         time + carto::common::FromSeconds(time_to_subdivision_end);
     
+    // 上一段点云的时间不应该大于等于这一段点云的时间
     auto it = sensor_to_previous_subdivision_time_.find(sensor_id);
     if (it != sensor_to_previous_subdivision_time_.end() &&
-        // 上一段点云的时间不应该大于等于这一段点云的时间
         it->second >= subdivision_time) {
       LOG(WARNING) << "Ignored subdivision of a LaserScan message from sensor "
                    << sensor_id << " because previous subdivision time "
@@ -265,7 +269,8 @@ void SensorBridge::HandleLaserScan(
       point.time -= time_to_subdivision_end;
     }
     CHECK_EQ(subdivision.back().time, 0.f);
-    // 将分段后的点云 subdivision 传入 trajectory_builder_
+    
+    // 将分段后的点云subdivision传入trajectory_builder_
     HandleRangefinder(sensor_id, subdivision_time, frame_id, subdivision);
   } // for 
 }
