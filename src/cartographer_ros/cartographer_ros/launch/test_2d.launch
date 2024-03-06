@@ -2,7 +2,7 @@
   <param name="/use_sim_time" value="false" />
 
   <param name="robot_description"
-      textfile="$(find cartographer_ros)/urdf/online_test_2d.urdf" />
+      textfile="$(find cartographer_ros)/urdf/test_2d.urdf" />
   <node name="robot_state_publisher" pkg="robot_state_publisher"
       type="robot_state_publisher" />
 
@@ -10,7 +10,7 @@
   <!-- <node name="cartographer_node" pkg="cartographer_ros"
       type="cartographer_node" args="
           -configuration_directory $(find cartographer_ros)/configuration_files
-          -configuration_basename cartographer.lua
+          -configuration_basename test_2d.lua
           -load_state_filename map.pbstream"
       output="screen">
     <remap from="scan" to="front_scan" />
@@ -20,7 +20,7 @@
   <node name="cartographer_node" pkg="cartographer_ros"
       type="cartographer_node" args="
           -configuration_directory $(find cartographer_ros)/configuration_files
-          -configuration_basename cartographer.lua"
+          -configuration_basename test_2d.lua"
       output="screen">
     <remap from="scan" to="LiDAR/STL06P" />
   </node>
