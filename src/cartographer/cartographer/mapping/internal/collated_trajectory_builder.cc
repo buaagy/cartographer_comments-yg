@@ -84,7 +84,7 @@ void CollatedTrajectoryBuilder::AddData(std::unique_ptr<sensor::Data> data) {
 }
 
 /**
- * @brief 处理 按照时间顺序分发出来的传感器数据
+ * @brief 处理按照时间顺序分发出来的传感器数据
  * 
  * @param[in] sensor_id 传感器的topic的名字
  * @param[in] data 需要处理的数据(Data是个类模板,可处理多种不同数据类型的数据)
@@ -121,7 +121,7 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
   // [ INFO]: collated_trajectory_builder.cc:72] imu rate: 10.00 Hz 1.00e-01 s +/- 4.35e-05 s (pulsed at 100.44% real time)
   // [ INFO]: collated_trajectory_builder.cc:72] scan rate: 19.83 Hz 5.04e-02 s +/- 4.27e-05 s (pulsed at 99.82% real time)
 
-  // 将排序好的数据送入 GlobalTrajectoryBuilder中的AddSensorData()函数中进行使用
+  // 将排序好的数据送入GlobalTrajectoryBuilder中的AddSensorData()函数中进行使用
   data->AddToTrajectoryBuilder(wrapped_trajectory_builder_.get());
 }
 

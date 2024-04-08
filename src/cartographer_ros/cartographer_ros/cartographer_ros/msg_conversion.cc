@@ -184,7 +184,7 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
     angle += msg.angle_increment;
   }
 
-  // 计算时间
+  // 计算时间戳
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
     // 以点云最后一个点的时间为点云的时间戳
@@ -215,7 +215,7 @@ bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2,
 }  // namespace
 
 /**
- * @brief 将cartographer格式的点云数据 转换成 ROS格式的点云数据
+ * @brief 将cartographer格式的点云数据转换成ROS格式的点云数据
  *
  * @param[in] timestamp 时间戳
  * @param[in] frame_id 坐标系
@@ -384,7 +384,7 @@ geometry_msgs::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
 }
 
 /**
- * @brief 将cartographer的Rigid3d位姿格式,转换成ROS的 geometry_msgs::Pose 格式
+ * @brief 将cartographer的Rigid3d位姿格式,转换成ROS的geometry_msgs::Pose格式
  * 
  * @param[in] rigid3d Rigid3d格式的位姿
  * @return geometry_msgs::Pose ROS格式的位姿

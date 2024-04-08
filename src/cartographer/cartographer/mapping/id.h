@@ -60,7 +60,7 @@ common::Time GetTime(const T& t) {
 // Uniquely identifies a trajectory node using a combination of a unique
 // trajectory ID and a zero-based index of the node inside that trajectory.
 // 使用唯一的轨迹ID和该轨迹内节点的从零开始的索引的组合来唯一地标识轨迹节点.
-// 一个是轨迹ID, 一个是节点的序号
+// 一个是轨迹的ID,一个是节点的index
 struct NodeId {
   NodeId(int trajectory_id, int node_index)
       : trajectory_id(trajectory_id), node_index(node_index) {}
