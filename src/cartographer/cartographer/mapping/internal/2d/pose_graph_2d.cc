@@ -432,12 +432,12 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
 }
 
 /**
- * @brief 保存节点, 计算子图内约束, 查找回环
+ * @brief 保存节点,计算子图内约束,查找回环
  * 
  * @param[in] node_id 刚加入的节点ID
- * @param[in] insertion_submaps active_submaps
- * @param[in] newly_finished_submap 是否是新finished的submap
- * @return WorkItem::Result 是否需要执行全局优化
+ * @param[in] insertion_submaps 活跃子图active_submaps
+ * @param[in] newly_finished_submap 是否是刚完成的子图
+ * @return WorkItem::Result 是否需要执行全局优化(回环检测)
  */
 WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     const NodeId& node_id,
@@ -449,11 +449,11 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   // 保存节点与计算子图内约束
   {
     absl::MutexLock locker(&mutex_);
-    // 获取节点信息数据
+    // 获取节点数据
     const auto& constant_data =
         data_.trajectory_nodes.at(node_id).constant_data;
     
-    // 获取 trajectory_id 下的正处于活跃状态下的子图的SubmapId
+    // 获取trajectory_id下的正处于活跃状态下的子图的Id
     submap_ids = InitializeGlobalSubmapPoses(
         node_id.trajectory_id, constant_data->time, insertion_submaps);
     CHECK_EQ(submap_ids.size(), insertion_submaps.size());
@@ -506,7 +506,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     // trajectories scheduled for deletion.
     // TODO(danielsievers): Add a member variable and avoid having to copy
     // them out here.
-    // 找到所有已经标记为kFinished状态的submap的id
+    // 找到所有已经标记为kFinished完成状态的submap的id
     for (const auto& submap_id_data : data_.submap_data) {
       if (submap_id_data.data.state == SubmapState::kFinished) {
         CHECK_EQ(submap_id_data.data.node_ids.count(node_id), 0);
@@ -528,22 +528,20 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     }
   } // end {}
 
-  // Step: 当前节点与所有已经完成的子图进行约束的计算---实际上就是回环检测
+  // 计算当前新节点与所有已完成子图间的约束,实际上就是回环检测
   for (const auto& submap_id : finished_submap_ids) {
-    // 计算旧的submap和新的节点间的约束
     ComputeConstraint(node_id, submap_id);
   }
 
-  // Step: 计算所有节点与刚完成子图间的约束---实际上就是回环检测
+  // 计算所有旧节点与刚完成子图(如果有的话)间的约束,实际上就是回环检测
   if (newly_finished_submap) {
     const SubmapId newly_finished_submap_id = submap_ids.front();
     // We have a new completed submap, so we look into adding constraints for
     // old nodes.
     for (const auto& node_id_data : optimization_problem_->node_data()) {
       const NodeId& node_id = node_id_data.id;
-      // 刚结束的子图内部的节点, 不再与这个子图进行约束的计算
+      // 对于刚完成子图内部的节点,不再与这个子图进行约束的计算
       if (newly_finished_submap_node_ids.count(node_id) == 0) {
-        // 计算新的submap和旧的节点间的约束
         ComputeConstraint(node_id, newly_finished_submap_id);
       }
     }
@@ -554,13 +552,14 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
 
   absl::MutexLock locker(&mutex_);
   ++num_nodes_since_last_loop_closure_;
-  // Step: 插入的节点数大于optimize_every_n_nodes时执行一次优化
-  // optimize_every_n_nodes = 0 时不进行优化, 这样就可以单独分析前端的效果
-  if (options_.optimize_every_n_nodes() > 0 && // param: optimize_every_n_nodes
+  // 每插入optimize_every_n_nodes个节点,执行一次优化
+  // optimize_every_n_nodes = 0时不进行优化,这样就可以单独分析前端的效果
+  if (options_.optimize_every_n_nodes() > 0 &&
       num_nodes_since_last_loop_closure_ > options_.optimize_every_n_nodes()) {
-    // 正在建图时只有这一块会返回 执行优化
+    // 执行优化(回环检测)
     return WorkItem::Result::kRunOptimization;
   }
+  // 不执行优化(回环检测)
   return WorkItem::Result::kDoNotRunOptimization;
 }
 

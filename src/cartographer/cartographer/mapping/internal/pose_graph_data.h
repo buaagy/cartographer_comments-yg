@@ -35,8 +35,8 @@ namespace mapping {
 // transitions to 'kFinished', all nodes are tried to match
 // against this submap. Likewise, all new nodes are matched against submaps in
 // that state.
-// 后台线程中子图的当前状态.在此转换为“kFinished”之后, 所有节点都将尝试与此子图匹配, 进行回环检测. 
-// 同样, 所有新节点都与kNoConstraintSearch状态下的子图匹配.
+// 后台线程中子图的当前状态,在此转换为kFinished之后,所有节点都将尝试与此子图匹配,进行回环检测
+// 同样,所有新节点都与kNoConstraintSearch状态下的子图匹配
 enum class SubmapState { kNoConstraintSearch, kFinished };
 
 // 轨迹的状态
