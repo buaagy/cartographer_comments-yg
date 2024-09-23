@@ -33,10 +33,11 @@ namespace mapping {
 // Keep poses for a certain duration to estimate linear and angular velocity.
 // Uses the velocities to extrapolate motion. Uses IMU and/or odometry data if
 // available to improve the extrapolation.
-// 保持poses一定持续时间, 以估计线速度和角速度
-// 使用速度预测运动. 使用IMU和/或里程计数据（如果有）来改善预测
+// 保持poses一定持续时间,以估计线速度和角速度
+// 使用速度预测运动,使用IMU和/或里程计数据（如果有）来改善预测
 class PoseExtrapolator : public PoseExtrapolatorInterface {
  public:
+  // explicit只能用于修饰构造函数,用于防止隐式转换
   explicit PoseExtrapolator(common::Duration pose_queue_duration,
                             double imu_gravity_time_constant);
 
@@ -47,9 +48,9 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
       common::Duration pose_queue_duration, double imu_gravity_time_constant,
       const sensor::ImuData& imu_data);
 
-  // c++11: override 关键字告诉编译器, 该函数应覆盖基类中的函数.
-  // 如果该函数实际上没有覆盖任何函数, 则会导致编译器错误
-  // 如果没加这个关键字 也没什么严重的error 只是少了编译器检查的安全性
+  // c++11:override关键字告诉编译器,该函数应覆盖基类中的函数.
+  // 如果该函数实际上没有覆盖任何函数,则会导致编译器错误.
+  // 如果没加这个关键字,也没什么严重的error,只是少了编译器检查的安全性.
 
   // Returns the time of the last added pose or Time::min() if no pose was added
   // yet.
@@ -91,10 +92,10 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
   const double gravity_time_constant_;
   std::deque<sensor::ImuData> imu_data_;
 
-  // c++11: std::unique_ptr 是独享被管理对象指针所有权的智能指针
-  // 它无法复制到其他 unique_ptr, 也无法通过值传递到函数,也无法用于需要副本的任何标准模板库 (STL) 算法
-  // 只能通过 std::move() 来移动unique_ptr
-  // std::make_unique 是 C++14 才有的特性
+  // c++11:std::unique_ptr是独享被管理对象指针所有权的智能指针.
+  // 它无法复制到其他unique_ptr,也无法通过值传递到函数,也无法用于需要副本的任何标准模板库 (STL) 算法.
+  // 只能通过std::move()来移动unique_ptr.
+  // std::make_unique是C++14才有的特性.
 
   std::unique_ptr<ImuTracker> imu_tracker_;               // 保存与预测当前姿态
   std::unique_ptr<ImuTracker> odometry_imu_tracker_;      // 用于计算里程计的姿态的ImuTracker

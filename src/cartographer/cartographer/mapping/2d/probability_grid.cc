@@ -95,7 +95,7 @@ GridType ProbabilityGrid::GetGridType() const {
 }
 
 // Returns the probability of the cell with 'cell_index'.
-// 获取 索引 处单元格的占用概率
+// 获取索引(cell_index)处的单元格的占用概率
 float ProbabilityGrid::GetProbability(const Eigen::Array2i& cell_index) const {
   if (!limits().Contains(cell_index)) return kMinProbability;
   return CorrespondenceCostToProbability(ValueToCorrespondenceCost(
@@ -143,7 +143,7 @@ bool ProbabilityGrid::DrawToSubmapTexture(
   ComputeCroppedLimits(&offset, &cell_limits);
 
   std::string cells;
-  // 遍历地图, 将栅格数据存入cells
+  // 遍历地图,将栅格数据存入cells
   for (const Eigen::Array2i& xy_index : XYIndexRangeIterator(cell_limits)) {
     if (!IsKnown(xy_index + offset)) {
       cells.push_back(0 /* unknown log odds value */);

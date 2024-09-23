@@ -61,6 +61,7 @@ namespace mapping {
 // Each node has been matched against one or more submaps (adding a constraint
 // for each match), both poses of nodes and of submaps are to be optimized.
 // All constraints are between a submap i and a node j.
+// 所有约束都是在子图i和节点j之间的
 class PoseGraph2D : public PoseGraph {
  public:
   PoseGraph2D(

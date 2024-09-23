@@ -120,7 +120,7 @@ class Grid2D : public GridInterface {
   }
 
  private:
-  MapLimits limits_;  // 地图大小边界, 包括x和y最大值, 分辨率, x和y方向栅格数
+  MapLimits limits_;  // 地图大小边界,包括:x和y最大值,分辨率,x和y方向栅格数
 
   // 地图栅格值, 存储的是free的概率转成uint16后的[0, 32767]范围内的值, 0代表未知
   std::vector<uint16> correspondence_cost_cells_; 
