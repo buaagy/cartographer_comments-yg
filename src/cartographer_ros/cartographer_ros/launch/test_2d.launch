@@ -22,7 +22,8 @@
           -configuration_directory $(find cartographer_ros)/configuration_files
           -configuration_basename test_2d.lua"
       output="screen">
-    <remap from="scan" to="LiDAR/STL06P" />
+    <!-- <remap from="scan" to="LiDAR/STL06P" /> -->
+    <remap from="points2" to="horizontal_laser_2d_fromPointCloud2" />
   </node>
   
   <!-- 启动占据栅格地图节点,分辨率=0.05米 -->
@@ -30,5 +31,5 @@
       type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
 
   <node name="rviz" pkg="rviz" type="rviz" required="true" 
-      args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
+      args="-d $(find cartographer_ros)/configuration_files/test_2d.rviz" />
 </launch>

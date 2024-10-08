@@ -32,19 +32,9 @@
     </visual>
   </link>
 
-  <link name="lidar_frame">
+  <link name="horizontal_laser_link">
     <visual>
-      <origin xyz="0 0 0" />
-      <geometry>
-        <cylinder length="0.05" radius="0.03" />
-      </geometry>
-      <material name="gray" />
-    </visual>
-  </link>
-
-  <link name="vertical_laser_link">
-    <visual>
-      <origin xyz="0 0 0" />
+      <origin rpy="1.5708 0 0" xyz="0.135 0 0" />
       <geometry>
         <cylinder length="0.05" radius="0.03" />
       </geometry>
@@ -60,15 +50,9 @@
     <origin xyz="0 0 0" />
   </joint>
 
-  <joint name="lidar_frame_joint" type="fixed">
+  <joint name="horizontal_laser_link_joint" type="fixed">
     <parent link="base_link" />
-    <child link="lidar_frame" />
+    <child link="horizontal_laser_link" />
     <origin xyz="0 0 0" />
-  </joint>
-
-  <joint name="vertical_laser_link_joint" type="fixed">
-    <parent link="base_link" />
-    <child link="vertical_laser_link" />
-    <origin rpy="0 -1.570796 3.141593" xyz="0.1007 0 0.1814" />
   </joint>
 </robot>

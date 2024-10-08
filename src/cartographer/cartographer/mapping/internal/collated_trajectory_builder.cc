@@ -111,6 +111,7 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
 
   if (std::chrono::steady_clock::now() - last_logging_time_ >
       common::FromSeconds(kSensorDataRatesLoggingPeriodSeconds)) {
+    // 打印各传感器(如激光雷达/里程计/IMU等)的帧率
     for (const auto& pair : rate_timers_) {
       LOG(INFO) << pair.first << " rate: " << pair.second.DebugString();
     }
