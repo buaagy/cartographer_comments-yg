@@ -176,20 +176,21 @@ int MapBuilderBridge::AddTrajectory(
 // 结束指定id的轨迹
 void MapBuilderBridge::FinishTrajectory(const int trajectory_id) {
   LOG(INFO) << "Finishing trajectory with ID '" << trajectory_id << "'...";
-
   // Make sure there is a trajectory with 'trajectory_id'.
+  // 确保指定id的轨迹存在
   CHECK(GetTrajectoryStates().count(trajectory_id));
+  // 结束轨迹
   map_builder_->FinishTrajectory(trajectory_id);
   sensor_bridges_.erase(trajectory_id);
 }
 
-// 当所有的轨迹结束时, 执行一次全局优化
+// 当所有的轨迹结束时,执行一次全局优化
 void MapBuilderBridge::RunFinalOptimization() {
   LOG(INFO) << "Running final trajectory optimization...";
   map_builder_->pose_graph()->RunFinalOptimization();
 }
 
-// 将地图, 轨迹, 以及各个传感器数据进行序列化保存
+// 将地图,轨迹,以及各个传感器数据进行序列化保存
 bool MapBuilderBridge::SerializeState(const std::string& filename,
                                       const bool include_unfinished_submaps) {
   return map_builder_->SerializeStateToFile(include_unfinished_submaps,
@@ -197,7 +198,7 @@ bool MapBuilderBridge::SerializeState(const std::string& filename,
 }
 
 /**
- * @brief 获取对应id轨迹的 索引为 submap_index 的地图的栅格值及其他信息
+ * @brief 获取对应id轨迹的索引为submap_index的地图的栅格值及其他信息
  * 
  * @param[in] request 轨迹id与submap的index
  * @param[in] response 是否成功

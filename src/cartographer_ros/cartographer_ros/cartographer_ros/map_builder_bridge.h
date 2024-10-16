@@ -75,14 +75,14 @@ class MapBuilderBridge {
     // it had processed accumulated 'range_data_in_local' and estimated
     // current 'local_pose' at 'time'.
     
-    // LocalSlamData中包含了local slam的一些数据, 包含当前时间, 当前估计的位姿, 以及累计的所有雷达数据
+    // LocalSlamData中包含了local slam的一些数据,包含当前时间,当前估计的位姿,以及累计的所有雷达数据
     struct LocalSlamData {
       ::cartographer::common::Time time;
       ::cartographer::transform::Rigid3d local_pose;
       ::cartographer::sensor::RangeData range_data_in_local;
     };
     std::shared_ptr<const LocalSlamData> local_slam_data;
-    cartographer::transform::Rigid3d local_to_map;  // local frame 到 global frame间的坐标变换
+    cartographer::transform::Rigid3d local_to_map;  // local frame到global frame间的坐标变换
 
     // published_frame 到 tracking_frame 间的坐标变换
     std::unique_ptr<cartographer::transform::Rigid3d> published_to_tracking;

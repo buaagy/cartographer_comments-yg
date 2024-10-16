@@ -76,6 +76,7 @@ double Median(const std::vector<double>& sorted) {
   return sorted.at(sorted.size() / 2);
 }
 
+// 根据Z值跳动对轨迹进行切分
 // Cut the trajectory at jumps in z. A new span is started when the current
 // node's z differes by more than kLevelHeightMeters from the median z values.
 std::vector<Span> SliceByAltitudeChange(const proto::Trajectory& trajectory) {
@@ -83,9 +84,11 @@ std::vector<Span> SliceByAltitudeChange(const proto::Trajectory& trajectory) {
 
   std::vector<Span> spans;
   spans.push_back(Span{0, 0, {trajectory.node(0).pose().translation().z()}});
+  // 遍历轨迹的每个node
   for (int i = 1; i < trajectory.node_size(); ++i) {
     const auto& node = trajectory.node(i);
     const double z = node.pose().translation().z();
+    // 判断当前z与z的中值的差值是否大于kLevelHeightMeters(2.5)
     if (std::abs(Median(spans.back().z_values) - z) > kLevelHeightMeters) {
       spans.push_back(Span{i, i, {}});
     }
@@ -201,6 +204,7 @@ std::vector<Floor> FindFloors(const proto::Trajectory& trajectory,
 
 }  // namespace
 
+// 地板检测
 std::vector<Floor> DetectFloors(const proto::Trajectory& trajectory) {
   const std::vector<Span> spans = SliceByAltitudeChange(trajectory);
   Levels levels;
